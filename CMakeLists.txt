@@ -4,7 +4,9 @@ project(speedrunners LANGUAGES CXX)
 
 add_subdirectory(Blackbone/src)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+if(CMAKE_VERSION VERSION_LESS "3.7.0")
+    set(CMAKE_INCLUDE_CURRENT_DIR ON)
+endif()
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -26,6 +28,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #    endif()
 #endif()
 
+if(WIN32)
+  set(CMAKE_PREFIX_PATH "C:\\Qt\\5.14.1\\msvc2017_64")
+endif()
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 if(ANDROID)
@@ -41,10 +46,11 @@ else()
   add_executable(
     speedrunners
     main.cpp
+    hack.cpp
     speedrunners.cpp
     speedrunners.h
     speedrunners.ui
-  )
+)
 endif()
 
 target_link_libraries(
