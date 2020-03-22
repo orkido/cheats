@@ -4,9 +4,9 @@
 #include <BlackBone/Syscalls/Syscall.h>
 #include <iostream>
 
-#include <QMainWindow>
-
 using namespace blackbone;
+
+void showMessageBox(const char* title, const char* text);
 
 int hack() {
     // List all process PIDs matching name
@@ -14,9 +14,8 @@ int hack() {
 
     // Attach to a process
     Process SpeedRunner;
-    if (pids.empty() || !NT_SUCCESS(SpeedRunner.Attach(pids.front())))
-    {
-         (NULL, L"Fail: Didn't find SpeedRunners.exe", L"Fail", 0);
+    if (pids.empty() || !NT_SUCCESS(SpeedRunner.Attach(pids.front()))) {
+        showMessageBox("Process not found", "Fail: Didn't find SpeedRunners.exe process!");
         return false;
     }
 
@@ -52,7 +51,7 @@ int hack() {
         }
 
         // Allocate memory
-        auto [block, status2] = memory.Allocate(0x1000, PAGE_EXECUTE_READWRITE);
+        auto [status2, block] = memory.Allocate(0x1000, PAGE_EXECUTE_READWRITE);
         if (NT_SUCCESS(status2)) {
             // Write into memory block
             block->Write(0x10, 12.0);
