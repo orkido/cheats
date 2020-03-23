@@ -3,7 +3,7 @@
 
 #include <QMessageBox>
 
-bool hack();
+bool hack(float boost_factor);
 
 SpeedRunners::SpeedRunners(QWidget *parent)
         : QMainWindow(parent), ui(new Ui::SpeedRunners) {
@@ -15,7 +15,8 @@ SpeedRunners::~SpeedRunners() {
 }
 
 void SpeedRunners::handleButton() {
-    hack();
+    double boost_factor = ui->doubleSpinBox->value();
+    hack(boost_factor);
 }
 
 void showMessageBox(const char* title, const char* text) {
