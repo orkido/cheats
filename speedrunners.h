@@ -17,5 +17,7 @@ public:
 
 private:
     Ui::SpeedRunners *ui;
+private slots:
+    void handleButton();
 };
 #endif // SPEEDRUNNERS_H

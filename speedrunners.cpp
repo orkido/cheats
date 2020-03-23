@@ -3,7 +3,7 @@
 
 #include <QMessageBox>
 
-int hack();
+bool hack();
 
 SpeedRunners::SpeedRunners(QWidget *parent)
         : QMainWindow(parent), ui(new Ui::SpeedRunners) {
@@ -12,6 +12,10 @@ SpeedRunners::SpeedRunners(QWidget *parent)
 
 SpeedRunners::~SpeedRunners() {
     delete ui;
+}
+
+void SpeedRunners::handleButton() {
+    hack();
 }
 
 void showMessageBox(const char* title, const char* text) {
