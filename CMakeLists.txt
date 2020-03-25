@@ -38,12 +38,13 @@ endif()
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 set(
-    speedrunners_src
-    main.cpp
-    hack.cpp
-    speedrunners.cpp
-    speedrunners.h
-    speedrunners.ui
+    "speedrunners_src"
+    "main.cpp"
+    "hack_speedrunners.cpp"
+    "hack_apex.cpp"
+    "speedrunners.cpp"
+    "speedrunners.h"
+    "speedrunners.ui"
 )
 
 if(ANDROID)
@@ -124,5 +125,5 @@ target_include_directories(
 add_library(
     speedrunners_inject
     SHARED
-    inject.cpp
+    "inject.cpp"
 )
