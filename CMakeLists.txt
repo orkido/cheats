@@ -25,7 +25,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #endif()
 
 if(WIN32)
-  set(CMAKE_PREFIX_PATH "C:\\Qt\\5.14.1\\msvc2017_64")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        # 64 bits
+        set(CMAKE_PREFIX_PATH "C:\\Qt\\5.14.1\\msvc2017_64")
+        set(DIASDK_LIBRARIES "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/DIA SDK/lib/amd64/diaguids.lib")
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        # 32 bits
+        set(CMAKE_PREFIX_PATH "C:\\Qt\\5.14.1\\msvc2017")
+        set(DIASDK_LIBRARIES "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/DIA SDK/lib/diaguids.lib")
+    endif()
 endif()
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
@@ -85,7 +93,7 @@ target_link_libraries(
         speedrunners
         PRIVATE Qt5::Widgets
         PRIVATE BlackBone
-        PRIVATE "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/DIA SDK/lib/amd64/diaguids.lib"
+        PRIVATE "${DIASDK_LIBRARIES}"
 )
 
 if (WIN32)
@@ -110,4 +118,11 @@ endif(WIN32)
 target_include_directories(
         speedrunners
         PRIVATE Blackbone/src
+)
+
+## Injection DLL
+add_library(
+    speedrunners_inject
+    SHARED
+    inject.cpp
 )

@@ -4,6 +4,7 @@
 #include <QMessageBox>
 
 bool hack(float boost_factor);
+bool deinit_hack();
 
 SpeedRunners::SpeedRunners(QWidget *parent)
         : QMainWindow(parent), ui(new Ui::SpeedRunners) {
@@ -11,6 +12,7 @@ SpeedRunners::SpeedRunners(QWidget *parent)
 }
 
 SpeedRunners::~SpeedRunners() {
+    deinit_hack();
     delete ui;
 }
 
