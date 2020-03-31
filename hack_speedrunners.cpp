@@ -200,8 +200,8 @@ ModuleDataPtr HackState::getDll(bool inject) {
 
     auto speedrunners_inject = modules.GetModule(L"speedrunners_inject.dll");
     if (!speedrunners_inject && inject) {
-        const wchar_t* dll_dir = L"C:\\Users\\***REMOVED***\\source\\repos\\speedrunners\\out\\build\\x86-Debug\\speedrunners\\speedrunners_inject.dll";
-        //const wchar_t* dll_dir = L".\\speedrunners_inject.dll";
+        // const wchar_t* dll_dir = L"C:\\Users\\***REMOVED***\\source\\repos\\speedrunners\\out\\build\\x86-Debug\\speedrunners\\speedrunners_inject.dll";
+        std::wstring dll_dir = Utils::GetExeDirectory() + L".\\speedrunners_inject.dll";
         auto result = modules.Inject(dll_dir);
         if (!result.success()) {
             throw HackStateException("Error", "Injection of speedrunners_inject.dll failed!");

@@ -18,6 +18,8 @@ public:
 private:
     Ui::SpeedRunners *ui;
 private slots:
-    void handleButton();
+    void handle_bt_speedrunners();
+
+    void handle_bt_apex();
 };
 #endif // SPEEDRUNNERS_H

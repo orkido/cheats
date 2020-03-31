@@ -14,24 +14,24 @@
    <string>SpeedRunners</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="bt_speedrunners">
     <property name="geometry">
      <rect>
-      <x>260</x>
-      <y>370</y>
+      <x>40</x>
+      <y>90</y>
       <width>91</width>
       <height>31</height>
      </rect>
     </property>
     <property name="text">
-     <string>Endless Boost</string>
+     <string>Set Boost Factor</string>
     </property>
    </widget>
    <widget class="QDoubleSpinBox" name="doubleSpinBox">
     <property name="geometry">
      <rect>
-      <x>260</x>
-      <y>340</y>
+      <x>40</x>
+      <y>60</y>
       <width>62</width>
       <height>22</height>
      </rect>
@@ -52,6 +52,45 @@
      <double>0.050000000000000</double>
     </property>
    </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>20</y>
+      <width>91</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>SpeedRunners</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>20</y>
+      <width>47</width>
+      <height>13</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Apex</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="bt_apex">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>90</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Exec</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -68,14 +107,30 @@
  <resources/>
  <connections>
   <connection>
-   <sender>pushButton</sender>
+   <sender>bt_speedrunners</sender>
    <signal>released()</signal>
    <receiver>SpeedRunners</receiver>
-   <slot>handleButton()</slot>
+   <slot>handle_bt_speedrunners()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>85</x>
      <y>476</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>bt_apex</sender>
+   <signal>released()</signal>
+   <receiver>SpeedRunners</receiver>
+   <slot>handle_bt_apex()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>327</x>
+     <y>122</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>

@@ -1,3 +1,6 @@
 [submodule "Blackbone"]
 	path = Blackbone
-	url = https://github.com/DarthTon/Blackbone.git
+	url = https://github.com/orkido/Blackbone.git
+[submodule "apexbot"]
+	path = apexbot
+	url = https://github.com/orkido/apexbot.git

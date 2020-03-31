@@ -40,11 +40,26 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
 set(
     "speedrunners_src"
     "main.cpp"
-    "hack_speedrunners.cpp"
-    "hack_apex.cpp"
     "speedrunners.cpp"
     "speedrunners.h"
     "speedrunners.ui"
+
+    "hack_speedrunners.cpp"
+    "hack_apex.cpp"
+
+    #"apexbot/src/stdafx.cpp"
+    "apexbot/src/aimassist.cpp"
+    "apexbot/src/apexbot.cpp"
+    "apexbot/src/cheats.cpp"
+    "apexbot/src/config.cpp"
+    "apexbot/src/context.cpp"
+    "apexbot/src/entities.cpp"
+    "apexbot/src/highlight.cpp"
+    "apexbot/src/items.cpp"
+    "apexbot/src/process.cpp"
+    "apexbot/src/scripts.cpp"
+    "apexbot/src/solver.cpp"
+    "apexbot/src/state.cpp"
 )
 
 if(ANDROID)
@@ -118,12 +133,15 @@ endif(WIN32)
 
 target_include_directories(
         speedrunners
-        PRIVATE Blackbone/src
+        PRIVATE "Blackbone/src"
+        PRIVATE "apexbot/src"
 )
 
-## Injection DLL
-add_library(
-    speedrunners_inject
-    SHARED
-    "inject.cpp"
-)
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    # Injection DLL only 32 bits version
+    add_library(
+        speedrunners_inject
+        SHARED
+        "inject.cpp"
+    )
+endif()
