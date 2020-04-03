@@ -2,6 +2,7 @@
 #define SPEEDRUNNERS_H
 
 #include <QMainWindow>
+#include "apexbot/src/overlay.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class SpeedRunners; }
@@ -17,9 +18,13 @@ public:
 
 private:
     Ui::SpeedRunners *ui;
+    Overlay* apex_overlay;
+
 private slots:
     void handle_bt_speedrunners();
 
     void handle_bt_apex();
+
+    void update_settings();
 };
 #endif // SPEEDRUNNERS_H

@@ -22,10 +22,9 @@ struct HackStateException : public std::exception {
     }*/
 };
 
-
+#include "hack_apex.hpp"
 #include <thread>
 #include <mutex>
-#include <atomic>
 #include <cassert>
 int main_apexbot(DriverControl* driverctl);
 
@@ -60,7 +59,8 @@ bool hack_apex() {
 
 bool deinit_hack_apex() {
     apexbot_running = false;
-    apexbot_thread.join();
+    if (apexbot_thread.joinable())
+        apexbot_thread.join();
 
 	if (driverctl) {
         if (!NT_SUCCESS(driverctl->Unload())) {

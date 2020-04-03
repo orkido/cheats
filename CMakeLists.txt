@@ -35,7 +35,7 @@ if(WIN32)
         set(DIASDK_LIBRARIES "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/DIA SDK/lib/diaguids.lib")
     endif()
 endif()
-find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Widgets 3DCore 3DExtras 3DRender REQUIRED)
 
 set(
     "speedrunners_src"
@@ -60,6 +60,7 @@ set(
     "apexbot/src/scripts.cpp"
     "apexbot/src/solver.cpp"
     "apexbot/src/state.cpp"
+    "apexbot/src/overlay.cpp"
 )
 
 if(ANDROID)
@@ -72,7 +73,7 @@ else()
   add_executable(
     speedrunners
     ${speedrunners_src}
-)
+  )
 endif()
 
 
@@ -107,7 +108,11 @@ endif()
 
 target_link_libraries(
         speedrunners
+        PRIVATE Qt5::Core
         PRIVATE Qt5::Widgets
+        PRIVATE Qt5::3DCore
+        PRIVATE Qt5::3DExtras
+        PRIVATE Qt5::3DRender
         PRIVATE BlackBone
         PRIVATE "${DIASDK_LIBRARIES}"
 )
