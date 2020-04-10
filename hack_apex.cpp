@@ -32,6 +32,11 @@ std::optional<DriverControl> driverctl;
 std::atomic<bool> apexbot_running;
 std::thread apexbot_thread;
 
+int32_t config_fov;
+uint32_t config_refresh_rate;
+float config_overlay_propsurvival_radius;
+bool config_unload_driver, config_aimbot, config_aimbot_teammates, config_highlight, config_highlight_teammates, config_display_overlay;
+
 
 bool hack_apex() {
     // ***REMOVED***
@@ -62,7 +67,7 @@ bool deinit_hack_apex() {
     if (apexbot_thread.joinable())
         apexbot_thread.join();
 
-	if (driverctl) {
+	if (driverctl && config_unload_driver) {
         if (!NT_SUCCESS(driverctl->Unload())) {
             showMessageBox("Error", "Failed to unload driver!");
         } else {

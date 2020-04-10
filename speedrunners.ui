@@ -184,6 +184,93 @@
      <double>8.000000000000000</double>
     </property>
    </widget>
+   <widget class="QCheckBox" name="cb_unload_driver">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>40</y>
+      <width>131</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Unload driver on exit</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cb_display_overlay">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>280</y>
+      <width>221</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Display overlay (Apply with Exec button)</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cb_aimbot">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>370</y>
+      <width>70</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Aimbot</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cb_highlight">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>310</y>
+      <width>101</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Highlight</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cb_highlight_teammates">
+    <property name="geometry">
+     <rect>
+      <x>320</x>
+      <y>330</y>
+      <width>101</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Teammates</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="cb_aimbot_teammates">
+    <property name="geometry">
+     <rect>
+      <x>320</x>
+      <y>390</y>
+      <width>101</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Teammates</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -264,6 +351,22 @@
    </hints>
   </connection>
   <connection>
+   <sender>cb_unload_driver</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>SpeedRunners</receiver>
+   <slot>update_settings()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>465</x>
+     <y>69</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>doubleSpinBox_overlay_propsurvival_radius</sender>
    <signal>valueChanged(double)</signal>
    <receiver>SpeedRunners</receiver>
@@ -272,6 +375,86 @@
     <hint type="sourcelabel">
      <x>330</x>
      <y>251</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cb_aimbot</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>SpeedRunners</receiver>
+   <slot>update_settings()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>334</x>
+     <y>399</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cb_aimbot_teammates</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>SpeedRunners</receiver>
+   <slot>update_settings()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>370</x>
+     <y>419</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cb_display_overlay</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>SpeedRunners</receiver>
+   <slot>update_settings()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>355</x>
+     <y>309</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cb_highlight</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>SpeedRunners</receiver>
+   <slot>update_settings()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>350</x>
+     <y>339</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cb_highlight_teammates</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>SpeedRunners</receiver>
+   <slot>update_settings()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>370</x>
+     <y>359</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>

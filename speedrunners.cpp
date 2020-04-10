@@ -30,6 +30,8 @@ void SpeedRunners::handle_bt_speedrunners() {
     hack(boost_factor);
 }
 
+#include "hack_apex.hpp"
+
 void SpeedRunners::handle_bt_apex() {
     update_settings();
     if (hack_apex()) {
@@ -37,20 +39,21 @@ void SpeedRunners::handle_bt_apex() {
             delete apex_overlay;
             apex_overlay = nullptr;
         }
-        apex_overlay = new Overlay();
+        if (config_display_overlay)
+            apex_overlay = new Overlay();
     }
 }
-
-#include "hack_apex.hpp"
-
-int32_t config_fov;
-uint32_t config_refresh_rate;
-float config_overlay_propsurvival_radius;
 
 void SpeedRunners::update_settings() {
     config_fov = ui->spinBox_FOV->value();
     config_overlay_propsurvival_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
     config_refresh_rate = ui->spinBox_refresh_rate->value();
+    config_unload_driver = ui->cb_unload_driver->isChecked();
+    config_aimbot = ui->cb_aimbot->isChecked();
+    config_aimbot_teammates = ui->cb_aimbot_teammates->isChecked();
+    config_highlight = ui->cb_highlight->isChecked();
+    config_highlight_teammates = ui->cb_highlight_teammates->isChecked();
+    config_display_overlay = ui->cb_display_overlay->isChecked();
 }
 
 void showMessageBox(const char* title, const char* text) {

@@ -27,11 +27,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         # 64 bits
-        set(CMAKE_PREFIX_PATH "C:\\Qt\\5.14.1\\msvc2017_64")
+        set(CMAKE_PREFIX_PATH "C:/Qt/5.14.2/msvc2017_64")
         set(DIASDK_LIBRARIES "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/DIA SDK/lib/amd64/diaguids.lib")
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
         # 32 bits
-        set(CMAKE_PREFIX_PATH "C:\\Qt\\5.14.1\\msvc2017")
+        set(CMAKE_PREFIX_PATH "C:/Qt/5.14.2/msvc2017")
         set(DIASDK_LIBRARIES "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/DIA SDK/lib/diaguids.lib")
     endif()
 endif()
