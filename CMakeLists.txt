@@ -118,22 +118,11 @@ target_link_libraries(
 )
 
 if (WIN32)
-if (ANDROID)
-# set path variable to <QT HOME>/bin or install *.dll, platform files and resources in target folder
     get_target_property(QT5_QMAKE_EXECUTABLE Qt5::qmake IMPORTED_LOCATION)
     get_filename_component(QT5_WINDEPLOYQT_EXECUTABLE ${QT5_QMAKE_EXECUTABLE} PATH)
     set(QT5_WINDEPLOYQT_EXECUTABLE "${QT5_WINDEPLOYQT_EXECUTABLE}/windeployqt.exe")
-
-    add_custom_command(TARGET foot_scanner POST_BUILD
-       COMMAND ${QT5_WINDEPLOYQT_EXECUTABLE} --qmldir ${CMAKE_SOURCE_DIR} $<TARGET_FILE_DIR:foot_scanner>)
-
-
-add_custom_command(TARGET speedrunners POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> $<TARGET_FILE_DIR:speedrunners>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:speedrunners>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:speedrunners>
-)
-endif(ANDROID)
+    add_custom_command(TARGET speedrunners POST_BUILD
+       COMMAND ${QT5_WINDEPLOYQT_EXECUTABLE} $<TARGET_FILE_DIR:speedrunners>)
 endif(WIN32)
 
 target_include_directories(

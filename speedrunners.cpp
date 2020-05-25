@@ -2,6 +2,7 @@
 #include "ui_speedrunners.h"
 
 #include <QMessageBox>
+#include <QtDebug>
 
 bool hack(float boost_factor);
 bool deinit_hack();
@@ -61,4 +62,8 @@ void showMessageBox(const char* title, const char* text) {
     msgbox.setWindowTitle(title);
     msgbox.setText(text);
     msgbox.exec();
+}
+
+void print_debug(const char* msg) {
+    qDebug(msg);
 }

@@ -96,12 +96,12 @@
      <rect>
       <x>300</x>
       <y>80</y>
-      <width>221</width>
+      <width>351</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>FOV (73° for 1080p in-game default settings)</string>
+     <string>FOV (73° for 1080p in-game default settings) (Apply with Exec button)</string>
     </property>
    </widget>
    <widget class="QSpinBox" name="spinBox_FOV">
@@ -128,12 +128,12 @@
      <rect>
       <x>300</x>
       <y>140</y>
-      <width>181</width>
+      <width>301</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Update every N ms (16ms = 60fps)</string>
+     <string>Update every N ms (16ms = 60fps) (Apply with Exec button)</string>
     </property>
    </widget>
    <widget class="QSpinBox" name="spinBox_refresh_rate">
@@ -160,12 +160,12 @@
      <rect>
       <x>300</x>
       <y>200</y>
-      <width>141</width>
+      <width>301</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>PropSurvival sphere radius</string>
+     <string>PropSurvival sphere radius (Apply with Exec button)</string>
     </property>
    </widget>
    <widget class="QDoubleSpinBox" name="doubleSpinBox_overlay_propsurvival_radius">
@@ -201,7 +201,7 @@
     <property name="geometry">
      <rect>
       <x>300</x>
-      <y>280</y>
+      <y>250</y>
       <width>221</width>
       <height>17</height>
      </rect>
@@ -216,8 +216,8 @@
    <widget class="QCheckBox" name="cb_aimbot">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>370</y>
+      <x>410</x>
+      <y>280</y>
       <width>70</width>
       <height>17</height>
      </rect>
@@ -226,14 +226,17 @@
      <string>Aimbot</string>
     </property>
     <property name="checked">
-     <bool>true</bool>
+     <bool>false</bool>
     </property>
    </widget>
    <widget class="QCheckBox" name="cb_highlight">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
       <x>300</x>
-      <y>310</y>
+      <y>280</y>
       <width>101</width>
       <height>17</height>
      </rect>
@@ -242,14 +245,14 @@
      <string>Highlight</string>
     </property>
     <property name="checked">
-     <bool>true</bool>
+     <bool>false</bool>
     </property>
    </widget>
    <widget class="QCheckBox" name="cb_highlight_teammates">
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>330</y>
+      <y>300</y>
       <width>101</width>
       <height>17</height>
      </rect>
@@ -261,14 +264,24 @@
    <widget class="QCheckBox" name="cb_aimbot_teammates">
     <property name="geometry">
      <rect>
-      <x>320</x>
-      <y>390</y>
+      <x>430</x>
+      <y>300</y>
       <width>101</width>
       <height>17</height>
      </rect>
     </property>
     <property name="text">
      <string>Teammates</string>
+    </property>
+   </widget>
+   <widget class="QTextBrowser" name="textBrowser">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>341</y>
+      <width>781</width>
+      <height>201</height>
+     </rect>
     </property>
    </widget>
   </widget>
