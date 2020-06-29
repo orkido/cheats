@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(speedrunners LANGUAGES CXX)
+project(speedrunners LANGUAGES CXX ASM_MASM)
 
 add_subdirectory(Blackbone/src)
 
@@ -39,6 +39,7 @@ find_package(Qt5 COMPONENTS Widgets 3DCore 3DExtras 3DRender REQUIRED)
 
 set(
     "speedrunners_src"
+
     "main.cpp"
     "speedrunners.cpp"
     "speedrunners.h"
@@ -46,6 +47,7 @@ set(
 
     "hack_speedrunners.cpp"
     "hack_apex.cpp"
+    "hack_civilization.cpp"
 
     #"apexbot/src/stdafx.cpp"
     "apexbot/src/aimassist.cpp"
@@ -55,13 +57,33 @@ set(
     "apexbot/src/context.cpp"
     "apexbot/src/entities.cpp"
     "apexbot/src/highlight.cpp"
+    "apexbot/src/overlay.cpp"
     "apexbot/src/items.cpp"
     "apexbot/src/process.cpp"
     "apexbot/src/scripts.cpp"
     "apexbot/src/solver.cpp"
     "apexbot/src/state.cpp"
-    "apexbot/src/overlay.cpp"
+
+    "QtOverlay/overlay.cpp"
+    "QtOverlay/overlay_data_interface.cpp"
 )
+
+set(CoD_Overlay FALSE)
+if(CoD_Overlay)
+    set(
+        "speedrunners_src"
+
+        "hack_cod_warzone.cpp"
+
+        "CoD_Warzone/Entity.cpp"
+        "CoD_Warzone/GameContext.cpp"
+        "CoD_Warzone/Process.cpp"
+        "CoD_Warzone/CoD_Warzone.cpp"
+	)
+    add_compile_definitions(CoD_WARZONE_ENABLED=1)
+else()
+    add_compile_definitions(CoD_WARZONE_ENABLED=0)
+endif()
 
 if(ANDROID)
   add_library(
@@ -136,6 +158,16 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     add_library(
         speedrunners_inject
         SHARED
-        "inject.cpp"
+        "inject_speedrunners.cpp"
+    )
+endif()
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    # Injection DLL only 64 bits version
+    add_library(
+        inject_civilization
+        SHARED
+        "inject_civilization.asm"
+        "inject_civilization.cpp"
     )
 endif()

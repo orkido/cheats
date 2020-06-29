@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include "inject.h"
+#include "inject_speedrunners.h"
 
 BOOL WINAPI DllMain(HINSTANCE hDLL, DWORD dwReason, LPVOID lpReserve)
 {

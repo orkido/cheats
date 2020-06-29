@@ -6,7 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <processthreadsapi.h>
-#include "inject.h"
+#include "inject_speedrunners.h"
 
 using namespace blackbone;
 void showMessageBox(const char* title, const char* text);
