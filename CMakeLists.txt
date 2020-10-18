@@ -1,6 +1,15 @@
+#cmake_minimum_required (VERSION 3.15 FATAL_ERROR)
+#cmake_policy(SET CMP0091 NEW)
+#set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+#SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
+#add_compile_options(/MT)
+
 cmake_minimum_required(VERSION 3.8)
 
-project(speedrunners LANGUAGES CXX ASM_MASM)
+# this line has to go before PROJECT to enable linkage flags
+#SET(MSVC_INCREMENTAL_DEFAULT ON)
+
+project(speedrunners LANGUAGES CXX C ASM_MASM)
 
 add_subdirectory(Blackbone/src)
 
@@ -27,11 +36,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         # 64 bits
-        set(CMAKE_PREFIX_PATH "C:/Qt/5.14.2/msvc2017_64")
+        set(CMAKE_PREFIX_PATH "C:/Qt/5.15.1/msvc2019_64")
         set(DIASDK_LIBRARIES "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/DIA SDK/lib/amd64/diaguids.lib")
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
         # 32 bits
-        set(CMAKE_PREFIX_PATH "C:/Qt/5.14.2/msvc2017")
+        set(CMAKE_PREFIX_PATH "C:/Qt/5.15.1/msvc2019")
         set(DIASDK_LIBRARIES "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/DIA SDK/lib/diaguids.lib")
     endif()
 endif()
@@ -40,14 +49,21 @@ find_package(Qt5 COMPONENTS Widgets 3DCore 3DExtras 3DRender REQUIRED)
 set(
     "speedrunners_src"
 
+    "speedrunners.ui"
     "main.cpp"
     "speedrunners.cpp"
     "speedrunners.h"
-    "speedrunners.ui"
 
     "hack_speedrunners.cpp"
     "hack_apex.cpp"
     "hack_civilization.cpp"
+
+    "hack_starcraft2.cpp"
+
+    "Starcraft2/Entity.cpp"
+    "Starcraft2/GameContext.cpp"
+    "Starcraft2/Process.cpp"
+    "Starcraft2/Starcraft2.cpp"
 
     #"apexbot/src/stdafx.cpp"
     "apexbot/src/aimassist.cpp"
@@ -160,6 +176,23 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
         SHARED
         "inject_speedrunners.cpp"
     )
+endif()
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    # Injection DLL only 32 bits version
+    add_library(
+        starcraft2_inject
+        SHARED
+        "inject_starcraft2.asm"
+        "inject_starcraft2.c"
+    )
+    target_compile_options(starcraft2_inject PUBLIC "/MT")
+    target_link_options(starcraft2_inject PUBLIC "/INCREMENTAL:NO")
+    #STRING(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replacementFlags ${CMAKE_EXE_LINKER_FLAGS_DEBUG})
+    #SET(CMAKE_EXE_LINKER_FLAGS_DEBUG "/INCREMENTAL:NO ${replacementFlags}" )
+
+    #STRING(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replacementFlags ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO})
+    #SET(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "/INCREMENTAL:NO ${replacementFlags}" )
 endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)

@@ -25,6 +25,7 @@ private slots:
     void handle_bt_apex();
     void handle_bt_cod_warzone();
     void handle_bt_civilization_vi();
+    void handle_bt_starcraft2();
 
     void update_settings();
 };

@@ -3,7 +3,7 @@ EXTERN new_gold_value_buffer:DWORD
 
 .code
 
-dll_callback proc EXPORT
+dll_callback PROC EXPORT
     push rbx
 	mov rbx, r9  ; Save value
 

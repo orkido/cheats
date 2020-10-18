@@ -3,18 +3,19 @@
 
 #include <cstdint>
 
-enum OverwriteMode {
+enum OverwriteMode : uint32_t {
     None,
     SetValue,
     AddValue,
+    Init,
 };
 
 struct DllConfig {
-    uintptr_t pValue[128];
+    uint64_t pValue[128];
     uint32_t value[128];
 
     OverwriteMode overwrite_mode;
-    uintptr_t overwrite_pValue;
+    uint64_t overwrite_pValue;
     uint32_t overwrite_value;
 
     bool keep_overwrite_mode;

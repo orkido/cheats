@@ -8,6 +8,7 @@
 using namespace blackbone;
 
 void showMessageBox(const char* title, const char* text);
+void print_debug(const char* msg);
 
 namespace CivilizationVI {
 
@@ -39,7 +40,7 @@ struct HackStateException : public std::exception {
 class HackState
 {
 public:
-    bool hack(std::vector<std::pair<uintptr_t, uint32_t>>& pointers, int mode, void* selected_address);
+    bool hack(std::vector<std::pair<uint64_t, uint32_t>>& pointers, OverwriteMode mode, uint64_t selected_address);
     ~HackState();
 
 private:
@@ -49,11 +50,12 @@ private:
     bool writePayload();
     void syncDllConfig(bool push);
     bool resetProcessCode();
-    bool update_hack_state(std::vector<std::pair<uintptr_t, uint32_t>>& pointers, int mode, void* selected_address);
+    bool update_hack_state(std::vector<std::pair<uint64_t, uint32_t>>& pointers, OverwriteMode mode, uint64_t selected_address);
 
     std::unique_ptr<Process> process;
     bool gold_adding_overwritten = false;
     DWORD pid = -1;
+    ptr_t getGoldSetter_address = NULL;
 
     struct DllConfig dll_config;
 };
@@ -91,10 +93,39 @@ bool HackState::attachProcess() {
 
 MemBlock HackState::getGoldSetter() {
     // Inject or search custom dll
-    auto& modules = process->modules();
 
-    auto gamecore_module = modules.GetModule(L"GameCore_Base_FinalRelease.dll");
-    ptr_t hook_ptr = gamecore_module->baseAddress + 0x224EE4;
+    ptr_t hook_ptr;
+    ptr_t static_offset = 0x237CC4;
+
+    // Pattern cannot be found after overwritting: store it
+    // When application is closed but game keeps running this address cannot be found by pattern matching
+    // because it will be overwritten!
+    // Set static_offset to disable pattern search
+    if (getGoldSetter_address) {
+        hook_ptr = getGoldSetter_address;
+    } else {
+        auto& modules = process->modules();
+        auto gamecore_module = modules.GetModule(L"GameCore_Base_FinalRelease.dll");
+
+        if (static_offset) {
+            hook_ptr = gamecore_module->baseAddress + static_offset;
+        } else {
+            std::vector<ptr_t> results;
+            PatternSearch ps(hook_code);
+            ps.SearchRemote(*process, gamecore_module->baseAddress, gamecore_module->size, results);
+
+            // Pattern is expected to be found once or twice. If found twice, it's the higher memory address
+            if (results.size() == 0 || results.size() > 2) {
+                throw HackStateException("Pattern Search", "Error: Could not find code pattern in getGoldSetter(), results.size() == " + std::to_string(results.size()) + ", expected 1 or 2! Try to restart the target process");
+            }
+
+            // Choose the correct result with higher memory location. If results contains one element, this does nothing
+            hook_ptr = max(results.front(), results.back());
+
+            print_debug(("GoldSetter offset found: " + std::to_string(hook_ptr - gamecore_module->baseAddress)).c_str());
+        }
+    }
+    getGoldSetter_address = hook_ptr;
 
     return MemBlock(&process->memory(), hook_ptr, true);
 }
@@ -105,7 +136,6 @@ ModuleDataPtr HackState::getDll(bool inject) {
 
     auto inject_civilization = modules.GetModule(L"inject_civilization.dll");
     if (!inject_civilization && inject) {
-        // const wchar_t* dll_dir = L"C:\\Users\\***REMOVED***\\source\\repos\\speedrunners\\out\\build\\x86-Debug\\speedrunners\\speedrunners_inject.dll";
         std::wstring dll_dir = Utils::GetExeDirectory() + L"\\inject_civilization.dll";
         auto result = modules.Inject(dll_dir);
         if (!result.success()) {
@@ -161,7 +191,6 @@ bool HackState::writePayload() {
         printf("\n");
 
         // TODO: Return statements here do not free "code"
-        syncDllConfig(true);
         if (NTSTATUS status = getGoldSetter().Write(0, code_size, code); !NT_SUCCESS(status)) {
             throw HackStateException("Error", "Block writing 2 failed! Status: " + std::to_string(status) + "!");
             return false;
@@ -195,7 +224,8 @@ void HackState::syncDllConfig(bool push) {
             throw HackStateException("Error", "Block writing dll_config failed! Status: " + std::to_string(status) + "!");
         }
     } else {
-        if (NTSTATUS status = MemBlock(&process->memory(), target_dll_config, true).Read(0, sizeof(dll_config), &dll_config); !NT_SUCCESS(status)) {
+        size_t val1 = sizeof(dll_config);
+        if (NTSTATUS status = MemBlock(&process->memory(), target_dll_config, true).Read(0, val1, &dll_config); !NT_SUCCESS(status)) {
             throw HackStateException("Error", "Block read dll_config failed! Status: " + std::to_string(status) + "!");
         }
     }
@@ -230,22 +260,13 @@ bool HackState::resetProcessCode() {
     return false;
 }
 
-bool HackState::hack(std::vector<std::pair<uintptr_t, uint32_t>>& pointers, int mode, void* selected_address) {
-    dll_config.overwrite_mode = OverwriteMode::None;
-    dll_config.last_mode = OverwriteMode::None;
-    dll_config.last_index = 0;
-    dll_config.overwrite_pValue = NULL;
-    dll_config.overwrite_value = 0;
-    dll_config.keep_overwrite_mode = false;
-    memset(dll_config.pValue, 0, sizeof(dll_config.pValue));
-    memset(dll_config.value, 0, sizeof(dll_config.value));
-
+bool HackState::hack(std::vector<std::pair<uint64_t, uint32_t>>& pointers, OverwriteMode mode, uint64_t selected_address) {
     try {
         if (!attachProcess())
             throw HackStateException("Failed", "attachProcess()");
         if (!writePayload())
             throw HackStateException("Failed", "writePayload()");
-        if (mode != -1 && !update_hack_state(pointers, mode, selected_address))
+        if (!update_hack_state(pointers, mode, selected_address))
             throw HackStateException("Failed", "update_hack_state()");
     }
     catch (const HackStateException& e) {
@@ -261,27 +282,28 @@ bool HackState::hack(std::vector<std::pair<uintptr_t, uint32_t>>& pointers, int 
 
 std::optional<HackState> hackstate;
 
-bool HackState::update_hack_state(std::vector<std::pair<uintptr_t, uint32_t>>& pointers, int mode, void* selected_address) {
+bool HackState::update_hack_state(std::vector<std::pair<uint64_t, uint32_t>>& pointers, OverwriteMode mode, uint64_t selected_address) {
     syncDllConfig(false);
 
-    dll_config.overwrite_mode = (OverwriteMode)mode;
-    dll_config.overwrite_pValue = (uintptr_t)selected_address;
-    dll_config.overwrite_value = 1000;
+    dll_config.overwrite_mode = mode;
+    dll_config.overwrite_pValue = selected_address;
+    uint32_t gold_value = 1000;
+    dll_config.overwrite_value = gold_value << 8; // fixed decimal point integer
     dll_config.keep_overwrite_mode = true;
 
     syncDllConfig(true);
 
     pointers.clear();
     for (int i = 0; i < sizeof(dll_config.pValue) / sizeof(dll_config.pValue[0]); ++i) {
-        std::pair<uintptr_t, uint32_t> data_pair = std::make_pair(dll_config.pValue[i], dll_config.value[i]);
+        std::pair<uint64_t, uint32_t> data_pair = std::make_pair(dll_config.pValue[i], dll_config.value[i]);
         pointers.push_back(data_pair);
     }
 
     return true;
 }
 
-bool hack(std::vector<std::pair<uintptr_t, uint32_t>>& pointers, int mode, void* selected_address) {
-    if (!hackstate && mode == -1)
+bool hack(std::vector<std::pair<uint64_t, uint32_t>>& pointers, OverwriteMode mode, uint64_t selected_address) {
+    if (!hackstate && mode == OverwriteMode::Init)
         hackstate.emplace();
 
     if (hackstate) {

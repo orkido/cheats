@@ -10,10 +10,7 @@ bool deinit_hack();
 bool hack_apex();
 bool deinit_hack_apex();
 
-namespace CivilizationVI {
-    bool hack(std::vector<std::pair<uintptr_t, uint32_t>>& pointers, int mode, void* selected_address);
-    bool deinit_hack();
-}
+#include "hack_civilization.hpp"
 
 void showMessageBox(const char* title, const char* text);
 
@@ -75,9 +72,23 @@ void SpeedRunners::handle_bt_cod_warzone() {
 #endif
 
 void SpeedRunners::handle_bt_civilization_vi() {
-    std::vector<std::pair<uintptr_t, uint32_t>> pointers;
-    CivilizationVI::hack(pointers, -1, NULL);
+    std::vector<std::pair<uint64_t, uint32_t>> pointers;
+    CivilizationVI::hack(pointers, OverwriteMode::Init, NULL);
     update_settings();
+}
+
+#include "hack_starcraft2.hpp"
+
+void SpeedRunners::handle_bt_starcraft2() {
+    update_settings();
+    if (hack_starcraft2()) {
+        /*if (overlay) {
+            delete overlay;
+            overlay = nullptr;
+        }*/
+        /*if (config_display_overlay)
+            overlay = new Overlay();*/
+    }
 }
 
 void SpeedRunners::update_settings() {
@@ -98,17 +109,23 @@ void SpeedRunners::update_settings() {
 #endif
 
     // Configure Civilization VI
-    auto selected_item = ui->table_civilization_vi->selectedItems();
-    for (auto item : selected_item) {
-        auto a = item->text();
+    auto selected_items = ui->table_civilization_vi->selectedItems();
+    uint64_t selected_address = 0;
+    // if multiple items are selected, pick last one
+    for (auto item : selected_items) {
+        if (item->column() == 0)
+            selected_address = item->text().toULongLong();
     }
-    std::vector<std::pair<uintptr_t, uint32_t>> pointers;
-    CivilizationVI::hack(pointers, 0, NULL);
-    ui->table_civilization_vi->clear();
-    for (auto item : pointers) {
-        ui->table_civilization_vi->insertRow(ui->table_civilization_vi->rowCount());
-        ui->table_civilization_vi->setItem(ui->table_civilization_vi->rowCount() - 1, 0, new QTableWidgetItem(std::to_string(item.first).c_str()));
-        ui->table_civilization_vi->setItem(ui->table_civilization_vi->rowCount() - 1, 1, new QTableWidgetItem(std::to_string(item.second).c_str()));
+    std::vector<std::pair<uint64_t, uint32_t>> pointers;
+    CivilizationVI::hack(pointers, ui->rb_civilization_add->isChecked() ? OverwriteMode::AddValue : (ui->rb_civilization_set->isChecked() ? OverwriteMode::SetValue : OverwriteMode::None), selected_address);
+    ui->table_civilization_vi->setRowCount(pointers.size());
+    int i = 0;
+    for (const auto & item : pointers) {
+        // ui->table_civilization_vi->insertRow(ui->table_civilization_vi->rowCount());
+        ui->table_civilization_vi->setItem(i, 0, new QTableWidgetItem(std::to_string(item.first).c_str()));
+        ui->table_civilization_vi->setItem(i, 1, new QTableWidgetItem(std::to_string(item.second).c_str()));
+        ui->table_civilization_vi->setItem(i, 2, new QTableWidgetItem(std::to_string(item.second >> 8).c_str()));
+        ++i;
     }
 
     // Configure overlay

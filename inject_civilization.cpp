@@ -21,28 +21,29 @@ struct PlayerChangeState
 
 // ASM and DLL API interface
 extern "C" {
-    __declspec(dllexport) struct DllConfig dll_config;
+    __declspec(dllexport) struct DllConfig dll_config = { 0 };
     uint32_t new_gold_value_buffer;
 
     void dll_callback_impl(struct PlayerChangeState* player_change_state, uint32_t current_gold, uint32_t add_gold) {
-#if _DEBUG
-        if (player_change_state->value != current_gold)
-            std::raise(SIGINT);
-#endif
+        if (player_change_state->value != current_gold) {
+            goto invalid;
+        }
 
         int index = -1;
+        // value contained in the buffer
         for (int i = 0; i < sizeof(dll_config.pValue) / sizeof(dll_config.pValue[0]); ++i) {
-            if ((DWORD*)dll_config.pValue[i] == &player_change_state->value) {
+            if (dll_config.pValue[i] == (uint64_t)&player_change_state->value) {
                 index = i;
                 break;
             }
         }
 
+        // find next free buffer
         if (index == -1) {
             for (int i = 0; i < sizeof(dll_config.pValue) / sizeof(dll_config.pValue[0]); ++i) {
-                if ((DWORD*)dll_config.pValue[i] == NULL) {
+                if (dll_config.pValue[i] == NULL) {
                     index = i;
-                    dll_config.pValue[i] = (uintptr_t)&player_change_state->value;
+                    dll_config.pValue[i] = (uint64_t)&player_change_state->value;
                     break;
                 }
             }
@@ -54,6 +55,7 @@ extern "C" {
             return;
         }
 
+        // Current object contained in buffer, but not the object we want to overwrite
         if (dll_config.overwrite_pValue != dll_config.pValue[index]) {
             new_gold_value_buffer = current_gold + add_gold;
             dll_config.value[index] = new_gold_value_buffer;
@@ -61,7 +63,7 @@ extern "C" {
         }
 
         // Do not modify values
-        if (dll_config.overwrite_mode == OverwriteMode::None) {
+        if (dll_config.overwrite_mode == OverwriteMode::None || dll_config.overwrite_mode == OverwriteMode::Init) {
             new_gold_value_buffer = current_gold + add_gold;
         } else if (dll_config.overwrite_mode == OverwriteMode::SetValue) {
             new_gold_value_buffer = dll_config.overwrite_value;
@@ -69,10 +71,7 @@ extern "C" {
             new_gold_value_buffer = current_gold + dll_config.overwrite_value;
         } else {
             // We got some invalid stuff
-#if _DEBUG
-            std::raise(SIGINT);
-#endif
-            new_gold_value_buffer = current_gold + add_gold;
+            goto invalid;
         }
 
         dll_config.last_mode = dll_config.overwrite_mode;
@@ -81,6 +80,13 @@ extern "C" {
             dll_config.overwrite_mode = OverwriteMode::None;
         
         dll_config.value[index] = new_gold_value_buffer;
+        return;
+
+    invalid:
+#if _DEBUG
+        std::raise(SIGINT);
+#endif
+        new_gold_value_buffer = current_gold + add_gold;
     }
 }
 
