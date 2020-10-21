@@ -1,17 +1,17 @@
-#cmake_minimum_required (VERSION 3.15 FATAL_ERROR)
-#cmake_policy(SET CMP0091 NEW)
-#set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-#SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
-#add_compile_options(/MT)
-
 cmake_minimum_required(VERSION 3.8)
-
-# this line has to go before PROJECT to enable linkage flags
-#SET(MSVC_INCREMENTAL_DEFAULT ON)
 
 project(speedrunners LANGUAGES CXX C ASM_MASM)
 
 add_subdirectory(Blackbone/src)
+
+# Configure which functionality should be available in executable
+set(CoD_Overlay FALSE)
+set(Starcraft2 FALSE)
+set(Civilization TRUE)
+set(Apex FALSE)
+
+# This is set automatically based on the above settings. Do not change
+set(QT_Overlay FALSE)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -19,19 +19,6 @@ set(CMAKE_AUTORCC ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# QtCreator supports the following variables for Android, which are identical to qmake Android variables.
-# Check http://doc.qt.io/qt-5/deployment-android.html for more information.
-# They need to be set before the find_package(Qt5 ...) call.
-
-#if(ANDROID)
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-#    if (ANDROID_ABI STREQUAL "armeabi-v7a")
-#        set(ANDROID_EXTRA_LIBS
-#            ${CMAKE_CURRENT_SOURCE_DIR}/path/to/libcrypto.so
-#            ${CMAKE_CURRENT_SOURCE_DIR}/path/to/libssl.so)
-#    endif()
-#endif()
 
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -53,39 +40,12 @@ set(
     "speedrunners.h"
 
     "hack_speedrunners.cpp"
-    "hack_apex.cpp"
-    "hack_civilization.cpp"
-
-    "hack_starcraft2.cpp"
-
-    "Starcraft2/Entity.cpp"
-    "Starcraft2/GameContext.cpp"
-    "Starcraft2/Process.cpp"
-    "Starcraft2/Starcraft2.cpp"
-
-    #"apexbot/src/stdafx.cpp"
-    "apexbot/src/aimassist.cpp"
-    "apexbot/src/apexbot.cpp"
-    "apexbot/src/cheats.cpp"
-    "apexbot/src/config.cpp"
-    "apexbot/src/context.cpp"
-    "apexbot/src/entities.cpp"
-    "apexbot/src/highlight.cpp"
-    "apexbot/src/overlay.cpp"
-    "apexbot/src/items.cpp"
-    "apexbot/src/process.cpp"
-    "apexbot/src/scripts.cpp"
-    "apexbot/src/solver.cpp"
-    "apexbot/src/state.cpp"
-
-    "QtOverlay/overlay.cpp"
-    "QtOverlay/overlay_data_interface.cpp"
 )
 
-set(CoD_Overlay FALSE)
 if(CoD_Overlay)
     set(
         "speedrunners_src"
+        "${speedrunners_src}"
 
         "hack_cod_warzone.cpp"
 
@@ -95,22 +55,85 @@ if(CoD_Overlay)
         "CoD_Warzone/CoD_Warzone.cpp"
 	)
     add_compile_definitions(CoD_WARZONE_ENABLED=1)
+    set(QT_Overlay TRUE)
 else()
     add_compile_definitions(CoD_WARZONE_ENABLED=0)
 endif()
 
-if(ANDROID)
-  add_library(
-    speedrunners
-    SHARED
-    ${speedrunners_src}
-  )
+if(Starcraft2)
+    set(
+        "speedrunners_src"
+        "${speedrunners_src}"
+
+        "hack_starcraft2.cpp"
+
+        "Starcraft2/Entity.cpp"
+        "Starcraft2/GameContext.cpp"
+        "Starcraft2/Process.cpp"
+        "Starcraft2/Starcraft2.cpp"
+	)
+    add_compile_definitions(STARCRAFT2_ENABLED=1)
 else()
-  add_executable(
-    speedrunners
-    ${speedrunners_src}
-  )
+    add_compile_definitions(STARCRAFT2_ENABLED=0)
 endif()
+
+if(Civilization)
+    set(
+        "speedrunners_src"
+        "${speedrunners_src}"
+
+        "hack_civilization.cpp"
+	)
+    add_compile_definitions(CIVILIZATION_ENABLED=1)
+else()
+    add_compile_definitions(CIVILIZATION_ENABLED=0)
+endif()
+
+if(Apex)
+    set(
+        "speedrunners_src"
+        "${speedrunners_src}"
+
+        "hack_apex.cpp"
+
+        #"apexbot/src/stdafx.cpp"
+        "apexbot/src/aimassist.cpp"
+        "apexbot/src/apexbot.cpp"
+        "apexbot/src/cheats.cpp"
+        "apexbot/src/config.cpp"
+        "apexbot/src/context.cpp"
+        "apexbot/src/entities.cpp"
+        "apexbot/src/highlight.cpp"
+        "apexbot/src/overlay.cpp"
+        "apexbot/src/items.cpp"
+        "apexbot/src/process.cpp"
+        "apexbot/src/scripts.cpp"
+        "apexbot/src/solver.cpp"
+        "apexbot/src/state.cpp"
+    )
+    add_compile_definitions(APEX_ENABLED=1)
+    set(QT_Overlay TRUE)
+else()
+    add_compile_definitions(APEX_ENABLED=0)
+endif()
+
+if(QT_Overlay)
+    set(
+        "speedrunners_src"
+        "${speedrunners_src}"
+
+        "QtOverlay/overlay.cpp"
+        "QtOverlay/overlay_data_interface.cpp"
+    )
+    add_compile_definitions(QT_OVERLAY_ENABLED=1)
+else()
+    add_compile_definitions(QT_OVERLAY_ENABLED=0)
+endif()
+
+add_executable(
+    speedrunners
+    "${speedrunners_src}"
+)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     target_link_directories(
@@ -159,29 +182,28 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     )
 endif()
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    # Injection DLL only 32 bits version
-    add_library(
-        starcraft2_inject
-        SHARED
-        "inject_starcraft2.asm"
-        "inject_starcraft2.c"
-    )
-    target_compile_options(starcraft2_inject PUBLIC "/MT")
-    target_link_options(starcraft2_inject PUBLIC "/INCREMENTAL:NO")
-    #STRING(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replacementFlags ${CMAKE_EXE_LINKER_FLAGS_DEBUG})
-    #SET(CMAKE_EXE_LINKER_FLAGS_DEBUG "/INCREMENTAL:NO ${replacementFlags}" )
-
-    #STRING(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replacementFlags ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO})
-    #SET(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "/INCREMENTAL:NO ${replacementFlags}" )
+if(Starcraft2)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        # Injection DLL only 32 bits version
+        add_library(
+            starcraft2_inject
+            SHARED
+            "inject_starcraft2.asm"
+            "inject_starcraft2.c"
+        )
+        target_compile_options(starcraft2_inject PUBLIC "/MT")
+        target_link_options(starcraft2_inject PUBLIC "/INCREMENTAL:NO")
+    endif()
 endif()
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    # Injection DLL only 64 bits version
-    add_library(
-        inject_civilization
-        SHARED
-        "inject_civilization.asm"
-        "inject_civilization.cpp"
-    )
+if(Civilization)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        # Injection DLL only 64 bits version
+        add_library(
+            inject_civilization
+            SHARED
+            "inject_civilization.asm"
+            "inject_civilization.cpp"
+        )
+    endif()
 endif()

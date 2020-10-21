@@ -7,10 +7,10 @@
 bool hack(float boost_factor);
 bool deinit_hack();
 
+#if APEX_ENABLED
 bool hack_apex();
 bool deinit_hack_apex();
-
-#include "hack_civilization.hpp"
+#endif
 
 void showMessageBox(const char* title, const char* text);
 
@@ -19,6 +19,9 @@ SpeedRunners::SpeedRunners(QWidget *parent)
     ui->setupUi(this);
 }
 
+#if CIVILIZATION_ENABLED
+#include "hack_civilization.hpp"
+#endif
 SpeedRunners::~SpeedRunners() {
     if (overlay) {
         delete overlay;
@@ -26,8 +29,12 @@ SpeedRunners::~SpeedRunners() {
     }
 
     deinit_hack();
+#if APEX_ENABLED
     deinit_hack_apex();
+#endif
+#if CIVILIZATION_ENABLED
     CivilizationVI::deinit_hack();
+#endif
     delete ui;
 }
 
@@ -36,6 +43,7 @@ void SpeedRunners::handle_bt_speedrunners() {
     hack(boost_factor);
 }
 
+#if APEX_ENABLED
 #include "hack_apex.hpp"
 #include "QtOverlay/overlay_data_interface.hpp"
 
@@ -50,6 +58,11 @@ void SpeedRunners::handle_bt_apex() {
             overlay = new QtOverlay::Overlay();
     }
 }
+#else
+void SpeedRunners::handle_bt_apex() {
+    showMessageBox("Error", "Not Implemented!");
+}
+#endif
 
 #if CoD_WARZONE_ENABLED
 #include "hack_cod_warzone.hpp"
@@ -71,12 +84,19 @@ void SpeedRunners::handle_bt_cod_warzone() {
 }
 #endif
 
+#if CIVILIZATION_ENABLED
 void SpeedRunners::handle_bt_civilization_vi() {
     std::vector<std::pair<uint64_t, uint32_t>> pointers;
     CivilizationVI::hack(pointers, OverwriteMode::Init, NULL);
     update_settings();
 }
+#else
+void SpeedRunners::handle_bt_civilization_vi() {
+    showMessageBox("Error", "Not Implemented!");
+}
+#endif
 
+#if STARCRAFT2_ENABLED
 #include "hack_starcraft2.hpp"
 
 void SpeedRunners::handle_bt_starcraft2() {
@@ -90,9 +110,15 @@ void SpeedRunners::handle_bt_starcraft2() {
             overlay = new Overlay();*/
     }
 }
+#else
+void SpeedRunners::handle_bt_starcraft2() {
+    showMessageBox("Error", "Not Implemented!");
+}
+#endif
 
 void SpeedRunners::update_settings() {
     // Configure apexbot
+#if APEX_ENABLED
     config_overlay_propsurvival_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
     config_refresh_rate = ui->spinBox_refresh_rate->value();
     config_unload_driver = ui->cb_unload_driver->isChecked();
@@ -101,6 +127,7 @@ void SpeedRunners::update_settings() {
     config_highlight = ui->cb_highlight->isChecked();
     config_highlight_teammates = ui->cb_highlight_teammates->isChecked();
     config_display_overlay = ui->cb_display_overlay->isChecked();
+#endif
 
     // Configure CoD Warzone
 #if CoD_WARZONE_ENABLED
@@ -109,6 +136,7 @@ void SpeedRunners::update_settings() {
 #endif
 
     // Configure Civilization VI
+#if CIVILIZATION_ENABLED
     auto selected_items = ui->table_civilization_vi->selectedItems();
     uint64_t selected_address = 0;
     // if multiple items are selected, pick last one
@@ -127,13 +155,16 @@ void SpeedRunners::update_settings() {
         ui->table_civilization_vi->setItem(i, 2, new QTableWidgetItem(std::to_string(item.second >> 8).c_str()));
         ++i;
     }
+#endif
 
     // Configure overlay
+#if QT_OVERLAY_ENABLED
     QtOverlay::overlay_config_fov = ui->spinBox_FOV->value();
     QtOverlay::overlay_config_highlight_all = config_highlight_teammates;
     QtOverlay::overlay_config_overlay_propsurvival_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
     QtOverlay::overlay_config_up_vector = QVector3D(0.0f, 0.0f, 1000.0f);
     QtOverlay::overlay_config_refresh_rate = ui->spinBox_refresh_rate->value();
+#endif
 }
 
 void showMessageBox(const char* title, const char* text) {
