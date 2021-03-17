@@ -95,7 +95,7 @@ MemBlock HackState::getGoldSetter() {
     // Inject or search custom dll
 
     ptr_t hook_ptr;
-    ptr_t static_offset = 0x237CC4;
+    ptr_t static_offset = 0;
 
     // Pattern cannot be found after overwritting: store it
     // When application is closed but game keeps running this address cannot be found by pattern matching
@@ -109,6 +109,7 @@ MemBlock HackState::getGoldSetter() {
 
         if (static_offset) {
             hook_ptr = gamecore_module->baseAddress + static_offset;
+            printf("Warning: Using static hook address\n");
         } else {
             std::vector<ptr_t> results;
             PatternSearch ps(hook_code);

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>900</width>
-    <height>680</height>
+    <width>1073</width>
+    <height>659</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -96,7 +96,7 @@
      <rect>
       <x>20</x>
       <y>80</y>
-      <width>351</width>
+      <width>371</width>
       <height>16</height>
      </rect>
     </property>
@@ -329,8 +329,8 @@
    <widget class="QPushButton" name="bt_civilizationVI">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>270</y>
+      <x>430</x>
+      <y>210</y>
       <width>131</width>
       <height>23</height>
      </rect>
@@ -342,8 +342,8 @@
    <widget class="QLabel" name="label_9">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>240</y>
+      <x>430</x>
+      <y>180</y>
       <width>81</width>
       <height>16</height>
      </rect>
@@ -355,9 +355,9 @@
    <widget class="QTableWidget" name="table_civilization_vi">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>310</y>
-      <width>341</width>
+      <x>430</x>
+      <y>280</y>
+      <width>351</width>
       <height>321</height>
      </rect>
     </property>
@@ -392,8 +392,8 @@
    <widget class="QRadioButton" name="rb_civilization_none">
     <property name="geometry">
      <rect>
-      <x>620</x>
-      <y>240</y>
+      <x>570</x>
+      <y>200</y>
       <width>82</width>
       <height>17</height>
      </rect>
@@ -408,8 +408,8 @@
    <widget class="QRadioButton" name="rb_civilization_set">
     <property name="geometry">
      <rect>
-      <x>620</x>
-      <y>260</y>
+      <x>570</x>
+      <y>220</y>
       <width>111</width>
       <height>17</height>
      </rect>
@@ -421,8 +421,8 @@
    <widget class="QRadioButton" name="rb_civilization_add">
     <property name="geometry">
      <rect>
-      <x>620</x>
-      <y>280</y>
+      <x>570</x>
+      <y>240</y>
       <width>111</width>
       <height>17</height>
      </rect>
@@ -435,7 +435,7 @@
     <property name="geometry">
      <rect>
       <x>430</x>
-      <y>170</y>
+      <y>120</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -448,7 +448,7 @@
     <property name="geometry">
      <rect>
       <x>430</x>
-      <y>140</y>
+      <y>90</y>
       <width>61</width>
       <height>16</height>
      </rect>
@@ -460,8 +460,8 @@
    <widget class="QLabel" name="label_11">
     <property name="geometry">
      <rect>
-      <x>620</x>
-      <y>220</y>
+      <x>570</x>
+      <y>180</y>
       <width>47</width>
       <height>13</height>
      </rect>
@@ -473,14 +473,41 @@
    <widget class="QLabel" name="label_12">
     <property name="geometry">
      <rect>
-      <x>740</x>
-      <y>200</y>
-      <width>141</width>
-      <height>111</height>
+      <x>790</x>
+      <y>210</y>
+      <width>161</width>
+      <height>141</height>
      </rect>
     </property>
     <property name="text">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;NOTE:&lt;br/&gt;Memory address of&lt;br/&gt;hooked function cannot be&lt;br/&gt;found after injection and is&lt;br/&gt;therefore stored in memory.&lt;br/&gt;When closing this application&lt;br/&gt;the address is lost and&lt;br/&gt;game must be restarted.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_13">
+    <property name="geometry">
+     <rect>
+      <x>790</x>
+      <y>360</y>
+      <width>261</width>
+      <height>241</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>HowTo:
+1. Enter a game (single-/multiplayer)
+2. Press &quot;Inject / Update View&quot;
+3. Search for you gold value in the list
+  If the list is empty or there are multiple entries
+  with your gold amount, make your amount
+  unique by spending/earning gold in-game.
+  Make sure to click the &quot;Inject / Update View&quot;
+  button to refresh the values after a round
+  finished.
+4. Select your gold value in the list
+5. Change the mode to &quot;Set Value&quot;
+6. If the game ends make sure to set mode
+  back to &quot;None&quot; before entering a new
+  game.</string>
     </property>
    </widget>
   </widget>
@@ -489,8 +516,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>900</width>
-     <height>21</height>
+     <width>1073</width>
+     <height>22</height>
     </rect>
    </property>
   </widget>
