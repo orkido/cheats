@@ -23,13 +23,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         # 64 bits
-        set(CMAKE_PREFIX_PATH "C:/Qt/5.15.1/msvc2019_64")
+        set(QT_PATHS
+            "C:/Qt/5.15.2/msvc2019_64"
+            "C:/Qt/5.15.1/msvc2019_64"
+        )
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
         # 32 bits
-        set(CMAKE_PREFIX_PATH "C:/Qt/5.15.1/msvc2019")
+        set(QT_PATHS
+            "C:/Qt/5.15.2/msvc2019"
+            "C:/Qt/5.15.1/msvc2019"
+        )
     endif()
 endif()
-find_package(Qt5 COMPONENTS Widgets 3DCore 3DExtras 3DRender REQUIRED)
+
+find_package(QT NAMES Qt5 COMPONENTS Core REQUIRED PATHS ${QT_PATHS})
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets 3DCore 3DExtras 3DRender REQUIRED PATHS ${QT_PATHS})
 
 set(
     "speedrunners_src"
@@ -150,21 +158,22 @@ else()
 endif()
 target_link_libraries(
         speedrunners
-        PRIVATE Qt5::Core
-        PRIVATE Qt5::Widgets
-        PRIVATE Qt5::3DCore
-        PRIVATE Qt5::3DExtras
-        PRIVATE Qt5::3DRender
+        PRIVATE Qt${QT_VERSION_MAJOR}::Core
+        PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+        PRIVATE Qt${QT_VERSION_MAJOR}::Gui
+        PRIVATE Qt${QT_VERSION_MAJOR}::3DCore
+        PRIVATE Qt${QT_VERSION_MAJOR}::3DExtras
+        PRIVATE Qt${QT_VERSION_MAJOR}::3DRender
         PRIVATE BlackBone
         PRIVATE diaguids
 )
 
 if (WIN32)
-    get_target_property(QT5_QMAKE_EXECUTABLE Qt5::qmake IMPORTED_LOCATION)
-    get_filename_component(QT5_WINDEPLOYQT_EXECUTABLE ${QT5_QMAKE_EXECUTABLE} PATH)
-    set(QT5_WINDEPLOYQT_EXECUTABLE "${QT5_WINDEPLOYQT_EXECUTABLE}/windeployqt.exe")
+    get_target_property(QT${QT_VERSION_MAJOR}_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+    get_filename_component(QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE ${QT${QT_VERSION_MAJOR}_QMAKE_EXECUTABLE} PATH)
+    set(QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE "${QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE}/windeployqt.exe")
     add_custom_command(TARGET speedrunners POST_BUILD
-       COMMAND ${QT5_WINDEPLOYQT_EXECUTABLE} $<TARGET_FILE_DIR:speedrunners>)
+       COMMAND ${QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE} $<TARGET_FILE_DIR:speedrunners>)
 endif(WIN32)
 
 target_include_directories(
