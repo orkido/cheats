@@ -6,9 +6,9 @@ add_subdirectory(Blackbone/src)
 
 # Configure which functionality should be available in executable
 set(CoD_Overlay FALSE)
-set(Starcraft2 FALSE)
+set(Starcraft2 TRUE)
 set(Civilization TRUE)
-set(Apex FALSE)
+set(Apex TRUE)
 
 # This is set automatically based on the above settings. Do not change
 set(QT_Overlay FALSE)
@@ -75,8 +75,6 @@ if(Starcraft2)
 
         "hack_starcraft2.cpp"
 
-        "Starcraft2/Entity.cpp"
-        "Starcraft2/GameContext.cpp"
         "Starcraft2/Process.cpp"
         "Starcraft2/Starcraft2.cpp"
 	)
@@ -192,15 +190,21 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
 endif()
 
 if(Starcraft2)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        # Injection DLL only 32 bits version
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        # Injection DLL only 64 bits version
         add_library(
             starcraft2_inject
             SHARED
-            "inject_starcraft2.asm"
-            "inject_starcraft2.c"
+            "Starcraft2/inject/inject_starcraft2.asm"
+            "Starcraft2/inject/inject_starcraft2.c"
         )
+        target_include_directories(
+            starcraft2_inject
+            PRIVATE "Starcraft2/inject"
+        )
+        # Use multithreaded static runtime libraries
         target_compile_options(starcraft2_inject PUBLIC "/MT")
+        # Disable global offet table indirect jumps
         target_link_options(starcraft2_inject PUBLIC "/INCREMENTAL:NO")
     endif()
 endif()

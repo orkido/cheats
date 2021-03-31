@@ -7,6 +7,9 @@ namespace Starcraft2
 {
 class Offsets {
 public:
+	// v5.0.6.83830
+	static const uint32_t func_NtQueryInformationThread = 0x39F47E0;
+
 	static const uint32_t checksum = 0x03E00777;
 	static const uint32_t timestamp = 0x0;
 
