@@ -3,19 +3,7 @@
 
 namespace QtOverlay {
 
-std::mutex shared_data_mutex;
-std::vector<std::shared_ptr<Entity>> shared_entity_list;
-std::queue<EntityChange> shared_change_queue;
-QVector3D shared_camera_position, shared_camera_angle;
-int32_t shared_camera_fov;
-bool shared_camera_changed;
-
-// Configuration
-QVector3D overlay_config_up_vector;
-int32_t overlay_config_fov;
-uint32_t overlay_config_refresh_rate;
-float overlay_config_overlay_propsurvival_radius;
-bool overlay_config_highlight_all;
+struct OverlayConfig overlay_config;
 
 enum OverlayItemType {
     CubeMiddle,
@@ -29,13 +17,13 @@ enum OverlayItemType {
     BarShield,
 };
 
-Qt3DCore::QEntity* ApexEntity::to_qentity()
+Qt3DCore::QEntity* FirstPersonEntity::to_qentity()
 {
     auto overlay_entities = std::vector<std::pair<OverlayItemType, Qt3DCore::QEntity*>>();
 
     if (IS_PropSurvival(this->type)) {
         auto sphere_mesh = new Qt3DExtras::QSphereMesh();
-        sphere_mesh->setRadius(overlay_config_overlay_propsurvival_radius);
+        sphere_mesh->setRadius(overlay_config.overlay_config_overlay_propsurvival_radius);
         sphere_mesh->setRings(100);
         sphere_mesh->setSlices(20);
         
@@ -187,7 +175,7 @@ Qt3DCore::QEntity* ApexEntity::to_qentity()
         case entity_type::PlayerDead:
         default:
             if (auto sphere_mesh = overlay_entity->componentsOfType<Qt3DExtras::QSphereMesh>(); sphere_mesh.size() == 1)
-                sphere_mesh[0]->setRadius(overlay_config_overlay_propsurvival_radius * 2.0);
+                sphere_mesh[0]->setRadius(overlay_config.overlay_config_overlay_propsurvival_radius * 2.0);
 
             material->setDiffuse(QColor(QRgb(0xbeb32b))); // yellow
             break;
@@ -227,5 +215,36 @@ Qt3DCore::QEntity* ApexEntity::to_qentity()
     }
 
     return combined_entity;
+}
+
+Qt3DCore::QEntity* RadarEntity::to_qentity()
+{
+    auto overlay_entity = new Qt3DCore::QEntity();
+
+    // mesh
+    {
+        auto sphere_mesh = new Qt3DExtras::QSphereMesh();
+        sphere_mesh->setRadius(overlay_config.overlay_config_overlay_radar_item_radius);
+        sphere_mesh->setRings(100);
+        sphere_mesh->setSlices(20);
+        overlay_entity->addComponent(sphere_mesh);
+    }
+
+    // transform
+    {
+        Qt3DCore::QTransform* transform = new Qt3DCore::QTransform();
+        transform->setTranslation(this->position);
+        overlay_entity->addComponent(transform);
+    }
+
+    // color
+    {
+        Qt3DExtras::QPhongMaterial* material = new Qt3DExtras::QPhongMaterial();
+        material->setDiffuse(QColor(QRgb(0xbeb32b))); // yellow
+        overlay_entity->addComponent(material);
+    }
+
+    overlay_entity->setEnabled(true);
+    return overlay_entity;
 }
 }

@@ -391,6 +391,7 @@ __declspec(dllexport) BOOL init_functions() {
     debug_print(log_level, "sc2_base_address = %p, sc2_base_size = %lu, winapi_NtQueryInformationThread = %p, fn_local_player_index = %p\n", sc2_base_address, sc2_base_size, winapi_NtQueryInformationThread, fn_local_player_index);
     debug_print(log_level, "fn_get_unit = %p, fn_is_owner_ally_neutral_enemy = %p, fn_read_health_shield_energy = %p, fn_access_location_by_unit = %p\n", fn_get_unit, fn_is_owner_ally_neutral_enemy, fn_read_health_shield_energy, fn_access_location_by_unit);
 
+    // Install hooks as the last step because those run instantly after installation
     if (success) {
         // Install hooks
         if (HOOK_GetSystemTimePreciseAsFileTime_ENABLED) {
@@ -448,9 +449,9 @@ __declspec(dllexport) void work() {
         debug_print(LEVEL_TRACE, "fn_access_location_by_unit()\n");
         struct DT_VectorLocation output;
         fn_access_location_by_unit(in_unit, &output);
-        out_unit->position_x = output.x;
-        out_unit->position_y = output.y;
-        out_unit->position_z = output.z;
+        out_unit->position_x = output.x / 4096.0f;
+        out_unit->position_y = output.y / 4096.0f;
+        out_unit->position_z = output.z / 4096.0f;
         out_unit->position_unknown1 = output.unknown1;
         out_unit->position_unknown2 = output.unknown2;
         out_unit->position_unknown3 = output.unknown3;
@@ -514,7 +515,7 @@ hook_NtQueryInformationThread(
     static int retry_counter = 2;
 
     // First init_functions before creating the worker thread to mitigate parallel pattern matching
-    // On error only forward winapi call
+    // On error or if failed too often only forward winapi call
     if (retry_counter <= 0 || !init_functions()) {
         if (retry_counter > 0)
             --retry_counter;

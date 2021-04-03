@@ -8,14 +8,14 @@ bool hack(float boost_factor);
 bool deinit_hack();
 
 #if APEX_ENABLED
-bool hack_apex();
+bool hack_apex(void* shared_ptr_overlay);
 bool deinit_hack_apex();
 #endif
 
 void showMessageBox(const char* title, const char* text);
 
 SpeedRunners::SpeedRunners(QWidget *parent)
-        : QMainWindow(parent), ui(new Ui::SpeedRunners), overlay(nullptr) {
+        : QMainWindow(parent), ui(new Ui::SpeedRunners) {
     ui->setupUi(this);
 }
 
@@ -23,11 +23,6 @@ SpeedRunners::SpeedRunners(QWidget *parent)
 #include "hack_civilization.hpp"
 #endif
 SpeedRunners::~SpeedRunners() {
-    if (overlay) {
-        delete overlay;
-        overlay = nullptr;
-    }
-
     deinit_hack();
 #if APEX_ENABLED
     deinit_hack_apex();
@@ -49,18 +44,16 @@ void SpeedRunners::handle_bt_speedrunners() {
 
 void SpeedRunners::handle_bt_apex() {
     update_settings();
-    if (hack_apex()) {
-        if (overlay) {
-            delete overlay;
-            overlay = nullptr;
-        }
+ 
+    overlay_apex.reset();
+    if (hack_apex(&overlay_apex)) {
         if (config_display_overlay)
-            overlay = new QtOverlay::Overlay();
+            overlay_apex.reset(new QtOverlay::Overlay());
     }
 }
 #else
 void SpeedRunners::handle_bt_apex() {
-    showMessageBox("Error", "Not Implemented!");
+    showMessageBox("Error", "Not Available!");
 }
 #endif
 
@@ -80,7 +73,7 @@ void SpeedRunners::handle_bt_cod_warzone() {
 }
 #else
 void SpeedRunners::handle_bt_cod_warzone() {
-    showMessageBox("Error", "Not Implemented!");
+    showMessageBox("Error", "Not Available!");
 }
 #endif
 
@@ -92,7 +85,7 @@ void SpeedRunners::handle_bt_civilization_vi() {
 }
 #else
 void SpeedRunners::handle_bt_civilization_vi() {
-    showMessageBox("Error", "Not Implemented!");
+    showMessageBox("Error", "Not Available!");
 }
 #endif
 
@@ -101,18 +94,18 @@ void SpeedRunners::handle_bt_civilization_vi() {
 
 void SpeedRunners::handle_bt_starcraft2() {
     update_settings();
-    if (hack_starcraft2()) {
-        /*if (overlay) {
-            delete overlay;
-            overlay = nullptr;
-        }*/
-        /*if (config_display_overlay)
-            overlay = new Overlay();*/
+    overlay_starcraft2_one.reset();
+    overlay_starcraft2_two.reset();
+    if (hack_starcraft2(&overlay_starcraft2_one, &overlay_starcraft2_two)) {
+        if (config_display_overlay) {
+            // overlay_starcraft2_one.reset(new QtOverlay::Overlay());
+            overlay_starcraft2_two.reset(new QtOverlay::Overlay());
+        }
     }
 }
 #else
 void SpeedRunners::handle_bt_starcraft2() {
-    showMessageBox("Error", "Not Implemented!");
+    showMessageBox("Error", "Not Available!");
 }
 #endif
 
@@ -157,13 +150,17 @@ void SpeedRunners::update_settings() {
     }
 #endif
 
+#if STARCRAFT2_ENABLED
+    Starcraft2::starcraft2_config_refresh_rate = ui->spinBox_refresh_rate->value();
+#endif
+
     // Configure overlay
 #if QT_OVERLAY_ENABLED
-    QtOverlay::overlay_config_fov = ui->spinBox_FOV->value();
-    QtOverlay::overlay_config_highlight_all = config_highlight_teammates;
-    QtOverlay::overlay_config_overlay_propsurvival_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
-    QtOverlay::overlay_config_up_vector = QVector3D(0.0f, 0.0f, 1000.0f);
-    QtOverlay::overlay_config_refresh_rate = ui->spinBox_refresh_rate->value();
+    QtOverlay::overlay_config.overlay_config_fov = ui->spinBox_FOV->value();
+    QtOverlay::overlay_config.overlay_config_highlight_all = config_highlight_teammates;
+    QtOverlay::overlay_config.overlay_config_overlay_propsurvival_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
+    QtOverlay::overlay_config.overlay_config_overlay_radar_item_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
+    QtOverlay::overlay_config.overlay_config_refresh_rate = ui->spinBox_refresh_rate->value();
 #endif
 }
 

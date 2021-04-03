@@ -15,7 +15,7 @@ std::thread starcraft2_thread;
 
 
 
-bool hack_starcraft2() {
+bool hack_starcraft2(void* shared_ptr_overlay1, void* shared_ptr_overlay2) {
     if (!starcraft2_driverctl)
         starcraft2_driverctl.emplace();
 
@@ -26,7 +26,7 @@ bool hack_starcraft2() {
 
     Starcraft2::starcraft2_running = true;
     if (!starcraft2_thread.joinable())
-        starcraft2_thread = std::move(std::thread(Starcraft2::main_starcraft2, &*starcraft2_driverctl));
+        starcraft2_thread = std::move(std::thread(Starcraft2::main_starcraft2, &*starcraft2_driverctl, shared_ptr_overlay1, shared_ptr_overlay2));
     else
         showMessageBox("Info", "Already running");
 

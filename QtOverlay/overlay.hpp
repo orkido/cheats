@@ -1,5 +1,7 @@
 #pragma once
 
+#include "overlay_data_interface.hpp"
+
 #include <QObject>
 #include <QWidget>
 #include <QPainter>
@@ -7,15 +9,18 @@
 #include <Qt3DExtras/Qt3DExtras>
 #include <QWindow>
 
+#include <mutex>
+
 namespace QtOverlay {
     class Overlay : public Qt3DExtras::Qt3DWindow
     {
         Q_OBJECT
     public:
         explicit Overlay(QWidget* parent = nullptr);
-
         void updateOverlay();
 
+        std::mutex data_mutex;
+        DataContainer data;
 
     private:
         QTimer draw_timer;

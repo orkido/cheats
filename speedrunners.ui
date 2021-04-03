@@ -128,7 +128,7 @@
      <rect>
       <x>20</x>
       <y>380</y>
-      <width>301</width>
+      <width>321</width>
       <height>16</height>
      </rect>
     </property>
@@ -202,7 +202,7 @@
      <rect>
       <x>20</x>
       <y>440</y>
-      <width>221</width>
+      <width>241</width>
       <height>17</height>
      </rect>
     </property>
@@ -305,12 +305,12 @@
      <rect>
       <x>20</x>
       <y>350</y>
-      <width>221</width>
+      <width>341</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Shared: Apex, CoD Warzone</string>
+     <string>Shared Overlay Configuration: Apex, CoD Warzone, Starcraft 2</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_8">

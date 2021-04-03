@@ -77,6 +77,7 @@ if(Starcraft2)
 
         "Starcraft2/Process.cpp"
         "Starcraft2/Starcraft2.cpp"
+        "Starcraft2/Overlay.cpp"
 	)
     add_compile_definitions(STARCRAFT2_ENABLED=1)
 else()

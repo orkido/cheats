@@ -6,37 +6,37 @@
 #include <stdint.h>
 
 struct Player {
-	uint32_t index;
-	char name[128];
-	uint32_t minerals;
-	uint32_t vespene;
-	uint32_t supply;
+    uint32_t index;
+    char name[128];
+    uint32_t minerals;
+    uint32_t vespene;
+    uint32_t supply;
 };
 
 struct Unit {
-	uint32_t index;
-	uint32_t index_unknown;
-	int32_t position_x;
-	int32_t position_y;
-	int32_t position_z;
-	int32_t position_unknown1;
-	int32_t position_unknown2;
-	int32_t position_unknown3;
-	int32_t position_unknown4;
-	uint32_t health;
-	uint32_t shields;
-	uint32_t energy;
+    uint32_t index;
+    uint32_t index_unknown;
+    float position_x;
+    float position_y;
+    float position_z;
+    int32_t position_unknown1;
+    int32_t position_unknown2;
+    int32_t position_unknown3;
+    int32_t position_unknown4;
+    uint32_t health;
+    uint32_t shields;
+    uint32_t energy;
 };
 
 struct SC2Data {
-	uint32_t mapsize_x;
-	uint32_t mapsize_y;
-	uint8_t local_player_index;
-	uint32_t players_length;
-	// Player index 16 is neutral
-	struct Player players[17];
-	uint32_t units_length;
-	struct Unit units[1 << 16];
+    uint32_t mapsize_x;
+    uint32_t mapsize_y;
+    uint8_t local_player_index;
+    uint32_t players_length;
+    // Player index 16 is neutral
+    struct Player players[17];
+    uint32_t units_length;
+    struct Unit units[1 << 16];
 };
 
 #define STRINGIFY2(X) #X

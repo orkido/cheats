@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "QtOverlay/overlay.hpp"
+#include <memory>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class SpeedRunners; }
@@ -18,7 +19,9 @@ public:
 
 private:
     Ui::SpeedRunners *ui;
-    QtOverlay::Overlay* overlay;
+    std::shared_ptr<QtOverlay::Overlay> overlay_apex;
+    std::shared_ptr<QtOverlay::Overlay> overlay_starcraft2_one;
+    std::shared_ptr<QtOverlay::Overlay> overlay_starcraft2_two;
 
 private slots:
     void handle_bt_speedrunners();

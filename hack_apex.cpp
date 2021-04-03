@@ -8,7 +8,7 @@ void showMessageBox(const char* title, const char* text);
 #include <thread>
 #include <mutex>
 #include <cassert>
-int main_apexbot(DriverControl* driverctl);
+int main_apexbot(DriverControl* driverctl, void* shared_ptr_overlay);
 
 std::optional<DriverControl> driverctl;
 std::atomic<bool> apexbot_running;
@@ -18,7 +18,7 @@ uint32_t config_refresh_rate;
 float config_overlay_propsurvival_radius;
 bool config_unload_driver, config_aimbot, config_aimbot_teammates, config_highlight, config_highlight_teammates, config_display_overlay;
 
-bool hack_apex() {
+bool hack_apex(void* shared_ptr_overlay) {
     if (!driverctl)
         driverctl.emplace();
 
@@ -28,7 +28,7 @@ bool hack_apex() {
 
     apexbot_running = true;
     if (!apexbot_thread.joinable())
-        apexbot_thread = std::move(std::thread(main_apexbot, &*driverctl));
+        apexbot_thread = std::move(std::thread(main_apexbot, &*driverctl, shared_ptr_overlay));
     else
         showMessageBox("Info", "Already running");
 
