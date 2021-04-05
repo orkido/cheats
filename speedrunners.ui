@@ -27,7 +27,7 @@
      <string>Set Boost Factor</string>
     </property>
    </widget>
-   <widget class="QDoubleSpinBox" name="doubleSpinBox">
+   <widget class="QDoubleSpinBox" name="doubleSpinBox_speedrunners_boost_multiplier">
     <property name="geometry">
      <rect>
       <x>650</x>
@@ -251,14 +251,14 @@
    <widget class="QCheckBox" name="cb_highlight_teammates">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>250</y>
-      <width>181</width>
+      <x>20</x>
+      <y>470</y>
+      <width>331</width>
       <height>17</height>
      </rect>
     </property>
     <property name="text">
-     <string>Internal Renderer: Teammates</string>
+     <string>Show non-enemy units (enemy units are always shown)</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="cb_aimbot_teammates">
@@ -316,14 +316,14 @@
    <widget class="QLabel" name="label_8">
     <property name="geometry">
      <rect>
-      <x>50</x>
-      <y>270</y>
-      <width>141</width>
+      <x>39</x>
+      <y>491</y>
+      <width>370</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Overlay: Teammates+NPC</string>
+     <string>Overlay: Show self, teammates and NPCs additionally to enemies</string>
     </property>
    </widget>
    <widget class="QPushButton" name="bt_civilizationVI">
@@ -434,8 +434,8 @@
    <widget class="QPushButton" name="bt_starcraft2">
     <property name="geometry">
      <rect>
-      <x>430</x>
-      <y>120</y>
+      <x>780</x>
+      <y>110</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -447,8 +447,8 @@
    <widget class="QLabel" name="label_10">
     <property name="geometry">
      <rect>
-      <x>430</x>
-      <y>90</y>
+      <x>780</x>
+      <y>20</y>
       <width>61</width>
       <height>16</height>
      </rect>
@@ -508,6 +508,64 @@
 6. If the game ends make sure to set mode
   back to &quot;None&quot; before entering a new
   game.</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_14">
+    <property name="geometry">
+     <rect>
+      <x>39</x>
+      <y>512</y>
+      <width>240</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Only Apex: Internal Renderer: Teammates</string>
+    </property>
+   </widget>
+   <widget class="QDoubleSpinBox" name="doubleSpinBox_overlay_starcraft2_radar_radius">
+    <property name="geometry">
+     <rect>
+      <x>782</x>
+      <y>76</y>
+      <width>62</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="maximum">
+     <double>100000.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.100000000000000</double>
+    </property>
+    <property name="value">
+     <double>2.000000000000000</double>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_15">
+    <property name="geometry">
+     <rect>
+      <x>780</x>
+      <y>50</y>
+      <width>131</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Radar unit radius</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_16">
+    <property name="geometry">
+     <rect>
+      <x>38</x>
+      <y>534</y>
+      <width>311</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Applied when units change (Exec button to force for all)</string>
     </property>
    </widget>
   </widget>

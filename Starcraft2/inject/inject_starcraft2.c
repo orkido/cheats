@@ -427,10 +427,15 @@ __declspec(dllexport) void work() {
     if (!update_data(FALSE))
         return;
 
+    debug_print(LEVEL_TRACE, "fn_local_player_index()\n");
+    g_sc2data.local_player_index = fn_local_player_index();
+
     for (uint32_t i = 0; i < *(uint32_t*)(sc2_base_address + units_list_length) && i < sizeof(g_sc2data.units) / sizeof(g_sc2data.units[0]); ++i) {
         debug_print(LEVEL_TRACE, "fn_get_unit()\n");
         struct DT_Unit* in_unit = fn_get_unit(sc2_base_address + units_list, i);
         struct Unit* out_unit = &g_sc2data.units[i];
+
+        out_unit->address = in_unit;
 
         debug_print(LEVEL_TRACE, "in_unit->index[_unknown]\n");
         // i == out_unix->index >> 18
@@ -456,12 +461,22 @@ __declspec(dllexport) void work() {
         out_unit->position_unknown2 = output.unknown2;
         out_unit->position_unknown3 = output.unknown3;
         out_unit->position_unknown4 = output.unknown4;
+
+        enum Team team = fn_is_owner_ally_neutral_enemy(g_sc2data.local_player_index, in_unit->owner_player_id);
+        out_unit->team = team;
+
+        out_unit->owner_player_id = in_unit->owner_player_id;
+        out_unit->unknown_player_id = in_unit->unknown_player_id;
+        out_unit->control_type = in_unit->control_type;
+        out_unit->amount_units_attacking_self = in_unit->amount_units_attacking_self;
+        out_unit->interesting_value = in_unit->interesting_value_in_setOwner;
+        out_unit->interesting_value2 = in_unit->interesting_value2_in_setOwner;
+        out_unit->player_id = in_unit->player_id;
+        out_unit->player_visible_num = in_unit->player_visible_num;
     }
 
-    debug_print(LEVEL_TRACE, "fn_local_player_index()\n");
-    g_sc2data.local_player_index = fn_local_player_index();
+    debug_print(LEVEL_TRACE, "general details\n");
     g_sc2data.units_length = *(uint32_t*)(sc2_base_address + units_list_length);
-
     g_sc2data.mapsize_x = *(uint32_t*)(sc2_base_address + mapsize_x);
     g_sc2data.mapsize_y = *(uint32_t*)(sc2_base_address + mapsize_y);
 

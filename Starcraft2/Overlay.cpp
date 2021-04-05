@@ -21,7 +21,7 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
 
     // Fill overlay data list with default elements until its greater or equal our element count
     for (uint32_t i = overlay->data.entity_list.size(); i < sc2_data->units_length; ++i) {
-        overlay->data.entity_list.push_back(std::shared_ptr<QtOverlay::Entity>(new QtOverlay::RadarEntity()));
+        overlay->data.entity_list.push_back(std::unique_ptr<QtOverlay::Entity>(new QtOverlay::RadarEntity()));
     }
 
     // Update overlay data list and create EntityChange elements if required
@@ -32,7 +32,17 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
         bool type_changed = false;
         bool pos_changed = false;
 
-        IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PropSurvival, type_changed);
+        if (src_entity.team == Team::Self) {
+            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::Player, type_changed);
+        } else if (src_entity.team == Team::Ally) {
+            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerTeam, type_changed);
+        } else if (src_entity.team == Team::Enemy) {
+            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerEnemy, type_changed);
+        } else if (src_entity.team == Team::Neutral) {
+            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerNPC, type_changed);
+        } else {
+            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerEnemy, type_changed);
+        }
 
         IF_UPDATE_SET_TRUE(entity->current_health, src_entity.health, type_changed);
         // IF_UPDATE_SET_TRUE(entity->max_health, src_entity.max_health, type_changed);
@@ -41,6 +51,18 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
         
         auto position = QVector3D(src_entity.position_x, src_entity.position_y, src_entity.position_z);
         IF_UPDATE_SET_TRUE(entity->position, position, pos_changed);
+
+        if (pos_changed || type_changed)
+            overlay->data.change_queue.push(QtOverlay::EntityChange(i, type_changed, pos_changed));
+    }
+    // Set all not (anymore) existing elements to none
+    for (uint32_t i = sc2_data->units_length; i < overlay->data.entity_list.size(); ++i) {
+        auto& entity = overlay->data.entity_list[i];
+
+        bool pos_changed = false;
+        bool type_changed = false;
+
+        IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::None, type_changed);
 
         if (pos_changed || type_changed)
             overlay->data.change_queue.push(QtOverlay::EntityChange(i, type_changed, pos_changed));
@@ -84,5 +106,20 @@ void Overlay::update_overlay(struct SC2Data* sc2_data) {
     std::shared_ptr<QtOverlay::Overlay> overlay_radar = *overlay2_;
 
     update_overlay_data(overlay_radar, sc2_data);
+
+    if (!overlay_radar)
+        return;
+
+    emit overlay_radar->dataChanged();
+
+    // Create minimap size
+    QSize wSize(sc2_data->mapsize_x, sc2_data->mapsize_y);
+    wSize.scale(425, 405, Qt::KeepAspectRatio);
+    // Center minimap over real minimap
+    QRect rect(QPoint(), wSize);
+    // overlay_radar->screen()->size().width()
+    rect.moveCenter(QPoint(-20 + (425 / 2), overlay_radar->screen()->size().height() - (2 + (405 / 2))));
+
+    emit overlay_radar->geometryChanged(rect);
 }
 }

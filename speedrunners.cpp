@@ -34,7 +34,7 @@ SpeedRunners::~SpeedRunners() {
 }
 
 void SpeedRunners::handle_bt_speedrunners() {
-    double boost_factor = ui->doubleSpinBox->value();
+    double boost_factor = ui->doubleSpinBox_speedrunners_boost_multiplier->value();
     hack(boost_factor);
 }
 
@@ -157,10 +157,11 @@ void SpeedRunners::update_settings() {
     // Configure overlay
 #if QT_OVERLAY_ENABLED
     QtOverlay::overlay_config.overlay_config_fov = ui->spinBox_FOV->value();
-    QtOverlay::overlay_config.overlay_config_highlight_all = config_highlight_teammates;
+    QtOverlay::overlay_config.overlay_config_highlight_all = ui->cb_highlight_teammates->isChecked();
     QtOverlay::overlay_config.overlay_config_overlay_propsurvival_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
-    QtOverlay::overlay_config.overlay_config_overlay_radar_item_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
     QtOverlay::overlay_config.overlay_config_refresh_rate = ui->spinBox_refresh_rate->value();
+
+    QtOverlay::overlay_config.radar_unit_radius = ui->doubleSpinBox_overlay_starcraft2_radar_radius->value();
 #endif
 }
 

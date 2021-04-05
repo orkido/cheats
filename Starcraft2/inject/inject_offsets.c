@@ -1,28 +1,52 @@
 #include <stdint.h>
 
+#pragma pack(push, 1)
 // All except those marked with "plain" are encoded
-struct __declspec(align(4)) DT_Unit
+struct DT_Unit
 {
-    unsigned __int32 index; // plain
+    unsigned __int32 index;
     char pad_0x0000[20];
-    unsigned __int32 index_unknown; // plain
+    unsigned __int32 index_unknown;
     __int64 m_ChangesWhenMoving;
-    char pad_0x0024[172];
+    char pad_0x0024[28];
+    unsigned __int8 owner_player_id;
+    unsigned __int8 control_type;
+    char pad_0x0042[18];
+    unsigned __int8 interesting_value_in_setOwner;
+    unsigned __int8 interesting_value2_in_setOwner;
+    char pad_0x0056[2];
+    unsigned __int8 amount_units_attacking_self;
+    char pad_0x0059[49];
+    unsigned __int8 unknown_player_id;
+    char pad_0x008B[69];
     __int64 m_ChangesWhenMoving2;
-    char pad_0x00D8[96];
-    __int8 m_PlayerNum; // plain
-    char pad_0x139[3];
-    unsigned __int32 visible; // plain
+    char gapD8[88];
+    unsigned __int32 player_id;
+    char gap134[4];
+    __int64 player_visible_num;
     char pad_0x0140[88];
     __int32 m_MissingHealth;
     __int32 m_Shields;
-    __int32 m_Energy; // plain
+    __int32 m_Energy;
     __int32 m_MaxHealth;
     __int32 m_MaxShield;
     char pad_0x01AC[192];
 };
+#pragma pack(pop)
 
-
+/*
+// All except those marked with "plain" are encoded
+index // plain
+index_unknown // plain
+unknown_player_id // plain
+control_type // plain; values meaning: // 1: movable unit (incl. movable buildings), 0: buildings, dead units or resources, 2: constructing buildings, unit training buildings, researching buildings or mined out resources
+interesting_value // plain
+interesting_value2 // plain
+unknown_player_id // plain; always 0x10
+player_id // plain; all 8 bytes do some visibility stuff; // = 1 << playerId; maybe only in DT_Player != 0
+player_visible_num // plain; first byte is the owner; all 8 bytes do some visibility stuff
+m_Energy // plain
+*/
 
 struct DT_VectorLocation {
     int32_t x;
@@ -63,7 +87,7 @@ FN_GET_UNIT_LIST fn_get_unit = NULL;
 const char* fn_is_owner_ally_neutral_enemy_pattern = "\x80\xF9\x10\x74\x42\x80\xFA\x10\x74\x3D\x3A\xD1\x75\x03"
                                                      "\x33\xC0\xC3";
 const char* fn_is_owner_ally_neutral_enemy_mask = "xxxxxxxxxxxxxxxxx";
-typedef int64_t(__fastcall* FN_IS_OWNER_ALLY_NEUTRAL_ENEMY) (uint8_t player_index, uint8_t other_player_index);
+typedef int32_t(__fastcall* FN_IS_OWNER_ALLY_NEUTRAL_ENEMY) (uint8_t player_index, uint8_t other_player_index);
 FN_IS_OWNER_ALLY_NEUTRAL_ENEMY fn_is_owner_ally_neutral_enemy = NULL;
 
 // In all cases this returns the output parameter. The output parameter must be a valid pointer which is set as follows:

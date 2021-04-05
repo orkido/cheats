@@ -13,7 +13,15 @@ struct Player {
     uint32_t supply;
 };
 
+enum Team {
+    Self = 0,
+    Ally = 1,
+    Enemy = 3,
+    Neutral = 2,
+};
+
 struct Unit {
+    uint64_t address;
     uint32_t index;
     uint32_t index_unknown;
     float position_x;
@@ -26,6 +34,15 @@ struct Unit {
     uint32_t health;
     uint32_t shields;
     uint32_t energy;
+    enum Team team;
+    uint8_t unknown_player_id;
+    uint8_t owner_player_id;
+    uint8_t interesting_value;
+    uint8_t interesting_value2;
+    uint64_t player_visible_num;
+    uint32_t player_id;
+    uint8_t control_type;
+    uint8_t amount_units_attacking_self;
 };
 
 struct SC2Data {

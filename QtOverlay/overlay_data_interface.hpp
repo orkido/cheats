@@ -3,12 +3,13 @@
 
 #include <queue>
 #include <vector>
+#include <memory>
 #include <QtGui/qvector3d.h>
 #include <Qt3DCore/qentity.h>
 
 namespace QtOverlay {
 enum class entity_type : uint32_t {
-    None = 0x0,
+    None = 0x0, // Not existing element
 
     // Genernal items
     PropSurvival = 0x100,
@@ -86,7 +87,7 @@ enum CameraType {
 class DataContainer {
 public:
     // 3D first person overlay data
-    std::vector<std::shared_ptr<Entity>> entity_list;
+    std::vector<std::unique_ptr<Entity>> entity_list;
     std::queue<EntityChange> change_queue;
     QVector3D camera_position, camera_angle;
     QVector3D camera_up_vector;
@@ -113,7 +114,7 @@ struct OverlayConfig {
     bool overlay_config_highlight_all;
 
     // Configuration radar
-    float overlay_config_overlay_radar_item_radius;
+    float radar_unit_radius;
 };
 
 extern struct OverlayConfig overlay_config;

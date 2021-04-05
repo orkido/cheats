@@ -224,7 +224,7 @@ Qt3DCore::QEntity* RadarEntity::to_qentity()
     // mesh
     {
         auto sphere_mesh = new Qt3DExtras::QSphereMesh();
-        sphere_mesh->setRadius(overlay_config.overlay_config_overlay_radar_item_radius);
+        sphere_mesh->setRadius(overlay_config.radar_unit_radius);
         sphere_mesh->setRings(100);
         sphere_mesh->setSlices(20);
         overlay_entity->addComponent(sphere_mesh);
@@ -240,7 +240,26 @@ Qt3DCore::QEntity* RadarEntity::to_qentity()
     // color
     {
         Qt3DExtras::QPhongMaterial* material = new Qt3DExtras::QPhongMaterial();
-        material->setDiffuse(QColor(QRgb(0xbeb32b))); // yellow
+
+        switch (this->type) {
+        // Players
+        case entity_type::PlayerEnemy:
+            material->setDiffuse(QColor(QRgb(0xff0000))); // red
+            break;
+        case entity_type::PlayerTeam:
+            material->setDiffuse(QColor(QRgb(0x00ff00))); // green
+            break;
+
+        case entity_type::PlayerNPC:
+            material->setDiffuse(QColor(QRgb(0xbeb32b))); // yellow
+            break;
+        case entity_type::Player:
+        case entity_type::PlayerDead:
+        default:
+            material->setDiffuse(QColor(QRgb(0x333399))); // blue
+            break;
+        }
+
         overlay_entity->addComponent(material);
     }
 
