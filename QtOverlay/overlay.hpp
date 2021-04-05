@@ -22,6 +22,14 @@ namespace QtOverlay {
         std::mutex data_mutex;
         DataContainer data;
 
+    public slots:
+        void onDataChanged();
+        void onGeometryChanged(QRect);
+
+    signals:
+        void dataChanged();
+        void geometryChanged(QRect);
+
     private:
         QTimer draw_timer;
 

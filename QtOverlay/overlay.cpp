@@ -15,6 +15,9 @@
 
 namespace QtOverlay {
 Overlay::Overlay(QWidget* parent) : Qt3DExtras::Qt3DWindow()/*, container(QWidget::createWindowContainer(this, parent))*/, draw_timer(), rootEntity(nullptr), light(nullptr) {
+    connect(this, SIGNAL(dataChanged()), SLOT(onDataChanged()));
+    connect(this, SIGNAL(geometryChanged(QRect)), SLOT(onGeometryChanged(QRect)));
+
     /*container->setWindowFlags(container->windowFlags() | Qt::Window | Qt::FramelessWindowHint | Qt::WindowTransparentForInput | Qt::WindowStaysOnTopHint);
     container->setAttribute(Qt::WA_NoSystemBackground);
     container->setAttribute(Qt::WA_TranslucentBackground);
@@ -68,20 +71,24 @@ void Overlay::updateOverlay() {
     data_mutex.lock();
 
     camera_changed = data.camera_changed;
-    data.camera_changed = false;
-    camera_position = data.camera_position;
-    camera_angle = data.camera_angle;
-    camera_fov = data.camera_fov;
-    camera_up_vector = data.camera_up_vector;
-    camera_view_direction = data.camera_view_direction;
-    camera_bottom = data.camera_bottom;
-    camera_top = data.camera_top;
-    camera_left = data.camera_left;
-    camera_right = data.camera_right;
+    if (camera_changed) {
+        data.camera_changed = false;
+        camera_position = data.camera_position;
+        camera_angle = data.camera_angle;
+        camera_fov = data.camera_fov;
+        camera_up_vector = data.camera_up_vector;
+        camera_view_direction = data.camera_view_direction;
+        camera_bottom = data.camera_bottom;
+        camera_top = data.camera_top;
+        camera_left = data.camera_left;
+        camera_right = data.camera_right;
+    }
 
     camera_type_changed = data.camera_type_changed;
-    data.camera_type_changed = false;
-    camera_type = data.camera_type;
+    if (camera_type_changed) {
+        data.camera_type_changed = false;
+        camera_type = data.camera_type;
+    }
 
     // Copy shared objects list into local list and clear the shared list
     while (!data.change_queue.empty()) {
@@ -160,18 +167,28 @@ void Overlay::updateOverlay() {
             assert(transform.size() == 1);
             transform[0]->setTranslation(entity.position);
         }
+    }
+    // Set the front of all entities towards camera
+    for (auto overlay_entity : overlay_entity_list) {
+        if (overlay_entity) {
 
-        // 3. Set entity angles
-        for (auto overlay_entity : overlay_entity_list) {
-            if (overlay_entity) {
+            auto transform = overlay_entity->componentsOfType<Qt3DCore::QTransform>();
+            assert(transform.size() == 1);
 
-                auto transform = overlay_entity->componentsOfType<Qt3DCore::QTransform>();
-                assert(transform.size() == 1);
-
-                QQuaternion rotation = QQuaternion::fromDirection(this->camera()->position() - transform[0]->translation(), camera_up_vector);
-                transform[0]->setRotation(rotation);
-            }
+            QQuaternion rotation = QQuaternion::fromDirection(this->camera()->position() - transform[0]->translation(), camera_up_vector);
+            transform[0]->setRotation(rotation);
         }
     }
+}
+
+void Overlay::onDataChanged() {
+    // If this function is called we assume that it will always called when data changes therefore we can disable the timer
+    this->draw_timer.stop();
+
+    updateOverlay();
+}
+
+void Overlay::onGeometryChanged(QRect rect) {
+    this->setGeometry(rect);
 }
 }
