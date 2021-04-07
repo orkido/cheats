@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+// Force unaligned struct layout because struct exactly matches the game memory offsets
 #pragma pack(push, 1)
 // All except those marked with "plain" are encoded
 struct DT_Unit

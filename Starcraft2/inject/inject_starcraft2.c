@@ -16,9 +16,6 @@ __declspec(dllexport) struct SC2Data g_sc2data = { 0 };
 
 #define BUFSIZE 39 // written 4 byte integers in decrypt_data_to_passed_buffer()
 
-__declspec(dllexport) uint64_t valid_threads = 0;
-__declspec(dllexport) uint64_t invalid_threads = 0;
-
 
 typedef int (__cdecl* DECRYPT_DATA_TO_PASSED_BUFFER) (void* _this, int* buffer);
 typedef void* (__cdecl* GET_DECRYPTOR_THIS) (int32_t player_num, unsigned int _unknown);
@@ -33,6 +30,7 @@ typedef NTSTATUS
     OUT PULONG ReturnLength OPTIONAL
 );
 
+// Declare functions
 __declspec(dllexport)
 VOID
 WINAPI
@@ -40,7 +38,11 @@ hook_GetSystemTimePreciseAsFileTime(
     _Out_ LPFILETIME lpSystemTimeAsFileTime
 );
 
+__declspec(dllexport) DWORD WINAPI worker(LPVOID lpThreadParameter);
+
 HRESULT hook_EndScene(void* pDevice);
+
+
 
 __declspec(dllexport) DECRYPT_DATA_TO_PASSED_BUFFER decrypt_data_to_passed_buffer = NULL;
 __declspec(dllexport) GET_DECRYPTOR_THIS get_decryptor_this = NULL;
@@ -338,6 +340,12 @@ __declspec(dllexport) BOOL init_functions() {
     if (GLOBAL_ADDRESSES)
         return TRUE;
 
+    // Only try to resolve functions once
+    static int retry_counter = 0;
+    if (retry_counter >= 1)
+        return FALSE;
+    ++retry_counter;
+
     sc2_base_address = (const char*)get_base();
     sc2_base_size = GetModuleInfo(GetCurrentProcessId(), "SC2_x64.exe", MODINFO_SIZE);
 
@@ -375,7 +383,7 @@ __declspec(dllexport) BOOL init_functions() {
         if (!vtable_EndScene)
             debug_print(LEVEL_ERROR, "Failed to find vtable entry, got NULL-poninter\n");
         else if (*(char**)vtable_EndScene != fn_EndScene) {
-            debug_print(LEVEL_ERROR, "Sanity check EndScene failed: Expected: 0x%p, got 0x%p\n", fn_EndScene, *(char**)vtable_EndScene);
+            debug_print(LEVEL_ERROR, "Sanity check EndScene failed: Expected: 0x%p, got 0x%p, maybe already hooked?\n", fn_EndScene, *(char**)vtable_EndScene);
             success = FALSE;
         }
         debug_print(LEVEL_DEBUG, "fn_EndScene: 0x%p, vtable_EndScene: 0x%p\n", fn_EndScene, vtable_EndScene);
@@ -401,6 +409,19 @@ __declspec(dllexport) BOOL init_functions() {
         if (HOOK_EndScene) {
             debug_print(LEVEL_TRACE, "Installing EndScene hook\n");
             *(char**)vtable_EndScene = hook_EndScene;
+        }
+
+        // Thread feature can be disabled
+        static BOOL thread_started = FALSE;
+        if (!thread_started && WORKER_THREAD_ENABLED) {
+            thread_started = TRUE;
+            HANDLE handle = CreateThread(NULL, 0, worker, &thread_started, 0, NULL);
+            if (handle == NULL)
+                debug_print(LEVEL_ERROR, "Failed to create thread: error %lu", GetLastError());
+            else {
+                debug_print(LEVEL_DEBUG, "Thread started\n");
+                CloseHandle(handle);
+            }
         }
     }
     return success;
@@ -527,32 +548,12 @@ hook_NtQueryInformationThread(
 ) {
     debug_print(LEVEL_TRACE, "hook_NtQueryInformationThread()\n");
 
-    static int retry_counter = 2;
-
-    // First init_functions before creating the worker thread to mitigate parallel pattern matching
-    // On error or if failed too often only forward winapi call
-    if (retry_counter <= 0 || !init_functions()) {
-        if (retry_counter > 0)
-            --retry_counter;
-        // On error, behave as usual to not crash the program
+    // On error try to fix the error to not crash the program and still forward winapi call
+    if (!init_functions()) {
         if (!winapi_NtQueryInformationThread)
             winapi_NtQueryInformationThread = (t_NtQueryInformationThread)GetProcAddress(GetModuleHandle("ntdll.dll"), "NtQueryInformationThread");
         if (!winapi_NtQueryInformationThread)
             return STATUS_INVALID_BUFFER_SIZE;
-        return winapi_NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
-    }
-
-    // Thread feature is disabled
-    static BOOL thread_started = WORKER_THREAD_ENABLED;
-    if (!thread_started) {
-        thread_started = TRUE;
-        HANDLE handle = CreateThread(NULL, 0, worker, &thread_started, 0, NULL);
-        if (handle == NULL)
-            debug_print(LEVEL_ERROR, "Failed to create thread: error %lu", GetLastError());
-        else {
-            debug_print(LEVEL_DEBUG, "Thread started\n");
-            CloseHandle(handle);
-        }
     }
 
     NTSTATUS status = winapi_NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
@@ -566,13 +567,10 @@ hook_NtQueryInformationThread(
     if (THREAD_START_ADDRESS_ENABLED && ThreadInformationClass == ThreadQuerySetWin32StartAddress) {
         char* expected_start_function = sc2_base_address + thread_start_address;
         if (*(char**)ThreadInformation != expected_start_function) {
-            invalid_threads += 1;
 
             debug_print(LEVEL_DEBUG, "Invalid thread: %p, base: %p, thread-base: %p\n", *(char**)ThreadInformation, sc2_base_address, (*(char**)ThreadInformation) - sc2_base_address);
             
             *(void**)ThreadInformation = expected_start_function;
-        } else {
-            valid_threads += 1;
         }
     }
     return status;
@@ -582,16 +580,11 @@ hook_NtQueryInformationThread(
 BOOL WINAPI DllMain(HINSTANCE hDLL, DWORD dwReason, LPVOID lpReserve)
 {
     debug_print(LEVEL_TRACE, "DllMain()\n");
-    HANDLE handle = 0;
+
     switch (dwReason) {
     case DLL_PROCESS_ATTACH:
-        /*handle = CreateThread(nullptr, 0, worker, nullptr, 0, nullptr);
-        if (handle) {
-            CloseHandle(handle);
-        } else {
-            return FALSE;
-        }
-        break;*/
+        init_functions();
+        break;
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
