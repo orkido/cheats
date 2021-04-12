@@ -594,24 +594,8 @@
      <y>141</y>
     </hint>
     <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>bt_apex</sender>
-   <signal>released()</signal>
-   <receiver>SpeedRunners</receiver>
-   <slot>handle_bt_apex()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>94</x>
-     <y>83</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
+     <x>536</x>
+     <y>329</y>
     </hint>
    </hints>
   </connection>
@@ -639,7 +623,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>61</x>
-     <y>421</y>
+     <y>443</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>
@@ -719,7 +703,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>240</x>
-     <y>461</y>
+     <y>478</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>
@@ -751,7 +735,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>210</x>
-     <y>287</y>
+     <y>492</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>
@@ -783,7 +767,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>497</x>
-     <y>313</y>
+     <y>254</y>
     </hint>
     <hint type="destinationlabel">
      <x>449</x>
@@ -815,7 +799,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>600</x>
-     <y>269</y>
+     <y>238</y>
     </hint>
     <hint type="destinationlabel">
      <x>449</x>
@@ -831,7 +815,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>600</x>
-     <y>289</y>
+     <y>258</y>
     </hint>
     <hint type="destinationlabel">
      <x>449</x>
@@ -847,7 +831,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>600</x>
-     <y>309</y>
+     <y>278</y>
     </hint>
     <hint type="destinationlabel">
      <x>449</x>
@@ -862,8 +846,8 @@
    <slot>handle_bt_starcraft2()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>467</x>
-     <y>202</y>
+     <x>780</x>
+     <y>154</y>
     </hint>
     <hint type="destinationlabel">
      <x>449</x>
@@ -871,5 +855,29 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>bt_apex</sender>
+   <signal>released()</signal>
+   <receiver>SpeedRunners</receiver>
+   <slot>handle_bt_apex()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>57</x>
+     <y>73</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>536</x>
+     <y>329</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
+ <slots>
+  <slot>handle_bt_apex()</slot>
+  <slot>update_settings()</slot>
+  <slot>handle_bt_starcraft2()</slot>
+  <slot>handle_bt_speedrunners()</slot>
+  <slot>handle_bt_cod_warzone()</slot>
+  <slot>handle_bt_civilization_vi()</slot>
+ </slots>
 </ui>

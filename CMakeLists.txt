@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.15)
 
 project(speedrunners LANGUAGES CXX C ASM_MASM)
 
@@ -10,6 +10,9 @@ set(Starcraft2 TRUE)
 set(Civilization TRUE)
 set(Apex TRUE)
 
+# cmake, ninja, conan, perl, vulkan in PATH (https://vulkan.lunarg.com/sdk/home)
+# "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+# conan.exe install qt3d/6.0.3@qt/final --build=missing --profile=C:/Qt/Tools/Conan/profiles/qt-6.0.3-msvc2019_64 -s build_type=Debug -g cmake_paths -g=cmake -g deploy
 # This is set automatically based on the above settings. Do not change
 set(QT_Overlay FALSE)
 
@@ -24,6 +27,7 @@ if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         # 64 bits
         set(QT_PATHS
+            "C:/Qt/6.0.3/msvc2019_64"
             "C:/Qt/5.15.2/msvc2019_64"
             "C:/Qt/5.15.1/msvc2019_64"
         )
@@ -36,8 +40,25 @@ if(WIN32)
     endif()
 endif()
 
-find_package(QT NAMES Qt5 COMPONENTS Core REQUIRED PATHS ${QT_PATHS})
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets 3DCore 3DExtras 3DRender REQUIRED PATHS ${QT_PATHS})
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED HINTS ${QT_PATHS})
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS CoreTools REQUIRED HINTS ${QT_PATHS})
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS GuiTools Gui REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS WidgetsTools Widgets REQUIRED)
+
+# Automatic dependency resolve does not work. We have to import Qt3D dependencies manually for now
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Concurrent REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Network REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS OpenGL REQUIRED)
+
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DCore 3DExtras 3DRender REQUIRED)
+
+#if (${QT_VERSION_MAJOR} MATCHES "6")
+#    include(${CMAKE_CURRENT_SOURCE_DIR}/Qt3D_x64_Debug/conan_paths.cmake)
+#endif()
+#find_package(Qt${QT_VERSION_MAJOR}3DCore REQUIRED)
+#find_package(Qt${QT_VERSION_MAJOR}3DExtras REQUIRED)
+#find_package(Qt${QT_VERSION_MAJOR}3DRender REQUIRED)
+#find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DCore 3DExtras 3DRender REQUIRED)
 
 set(
     "speedrunners_src"
@@ -80,6 +101,7 @@ if(Starcraft2)
         "Starcraft2/Overlay.cpp"
 	)
     add_compile_definitions(STARCRAFT2_ENABLED=1)
+    set(QT_Overlay TRUE)
 else()
     add_compile_definitions(STARCRAFT2_ENABLED=0)
 endif()
@@ -167,6 +189,7 @@ target_link_libraries(
         PRIVATE diaguids
 )
 
+# Deploy Qt DLL dependencies in install path
 if (WIN32)
     get_target_property(QT${QT_VERSION_MAJOR}_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
     get_filename_component(QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE ${QT${QT_VERSION_MAJOR}_QMAKE_EXECUTABLE} PATH)

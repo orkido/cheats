@@ -237,7 +237,7 @@ bool HackState::resetProcessCode() {
         // Attach process and THEN check if *this* process instance was patched
         if (attachProcess()) {
             if (gold_adding_overwritten) {
-                MemBlock& gold_setter = getGoldSetter();
+                MemBlock gold_setter = getGoldSetter();
                 gold_setter.Write(0, hook_code.size(), hook_code.data());
                 gold_adding_overwritten = false;
             }
