@@ -58,21 +58,15 @@ struct DllOffsets dll_exports(std::wstring& dll_path) {
 	return result;
 }
 
-ptr_t inject(std::wstring& dll_path, void* driverctl, uint32_t pid) {
-	// Inject DLL and hook WINAPI function
-
+void hook_NtQueryInformationThread(std::wstring& dll_path, Process& proc, ptr_t injected_dll_base) {
 	struct DllOffsets dll_offsets = dll_exports(dll_path);
-	DriverControl* _driverctl = (DriverControl*)driverctl;
-	NTSTATUS status = 0;
-	Process proc;
-	status = proc.Attach(pid);
-	if (!NT_SUCCESS(status))
-		exit(1);
+
+	NTSTATUS status;
 
 	// Dynamically resolved function address of NtQueryInformationThread is stored there
 	ptr_t fn_NtQueryInformationThread = proc.modules().GetMainModule()->baseAddress + Offsets::func_NtQueryInformationThread;
 	ptr_t NtQueryInformationThread_address;
-	status = _driverctl->ReadMem(pid, fn_NtQueryInformationThread, proc.core().isWow64() ? 4 : 8, &NtQueryInformationThread_address);
+	status = proc.memory().Read(fn_NtQueryInformationThread, proc.core().isWow64() ? 4 : 8, &NtQueryInformationThread_address);
 	if (!NT_SUCCESS(status) || !NtQueryInformationThread_address)
 		exit(1);
 
@@ -85,35 +79,8 @@ ptr_t inject(std::wstring& dll_path, void* driverctl, uint32_t pid) {
 	}
 
 	// Compare the above resolved function pointer with the dynamically resolved address
-	// If the DLL has already been injected or the offset is outdated, this is false
+	// If the function has already been hook (e.g. DLL already injected) or the offset is outdated, this is false
 	bool function_hookable = NtQueryInformationThread_ntdll_address == NtQueryInformationThread_address;
-
-	// Inject if we can hook the function and set injected_dll_base
-	ptr_t injected_dll_base = 0;
-	{
-		if (function_hookable) {
-			// There are multiple working methods to inject the DLL
-			// proc.mmap().MapImage();
-			// status = _driverctl->MmapDll(pid, dll_path, KMmapFlags::KNoThreads | KMmapFlags::KNoTLS);
-			status = _driverctl->MmapDll(pid, dll_path, KMmapFlags::KNoExecution);
-			// status = _driverctl->MmapDll(pid, dll_path, KMmapFlags::KNoFlags | KMmapFlags::KNoExceptions | KMmapFlags::KNoTLS | KMmapFlags::KNoSxS | KMmapFlags::KNoThreads);
-			// status = _driverctl->InjectDll(pid, std::wstring(L"\\DosDevices\\") + dll_path, InjectType::IT_Apc);
-			// status = _driverctl->InjectDll(pid, std::wstring(L"\\DosDevices\\") + dll_path, InjectType::IT_Thread);
-
-			if (!NT_SUCCESS(status))
-				exit(1);
-		}
-
-		// Search for binary pattern to find the base address of our DLL
-		PatternSearch ps(CONST_OFFSET_VALUE);
-		std::vector<ptr_t> results;
-		ps.SearchRemoteWhole(proc, false, 0, results, 1);
-		if (results.empty())
-			// The NtQueryInformationThread offset must be wrong
-			exit(1);
-		ptr_t search_string_address = results.front();
-		injected_dll_base = search_string_address - dll_offsets.search_string_offset;
-	}
 
 	// Hook execution to our injected NtQueryInformationThread stub if is hookable
 	if (function_hookable) {
@@ -122,16 +89,87 @@ ptr_t inject(std::wstring& dll_path, void* driverctl, uint32_t pid) {
 		// Assert the anti-anti-cheat
 		uint8_t first_byte_asm_wrap;
 		uint8_t first_byte_NtQueryInformationThread;
-		_driverctl->ReadMem(pid, asm_wrap_NtQueryInformationThread_address, 1, &first_byte_asm_wrap);
-		_driverctl->ReadMem(pid, NtQueryInformationThread_address, 1, &first_byte_NtQueryInformationThread);
+		proc.memory().Read(asm_wrap_NtQueryInformationThread_address, 1, &first_byte_asm_wrap);
+		proc.memory().Read(NtQueryInformationThread_address, 1, &first_byte_NtQueryInformationThread);
 		if (first_byte_asm_wrap != first_byte_NtQueryInformationThread)
 			exit(1);
 
 		// Redirect execution
-		status = _driverctl->WriteMem(pid, fn_NtQueryInformationThread, proc.core().isWow64() ? 4 : 8, &asm_wrap_NtQueryInformationThread_address);
+		status = proc.memory().Write(fn_NtQueryInformationThread, proc.core().isWow64() ? 4 : 8, &asm_wrap_NtQueryInformationThread_address);
 
 		if (!NT_SUCCESS(status))
 			exit(1);
+	}
+}
+
+enum InjectMethod {
+	// Stealth mode: No thread hijacking, no thread creation, only hooks by overwriting function pointers.
+	// Use the kernel driver to mmap the DLL and hook_NtQueryInformationThread to initialize the DLL.
+	MmapKernelDriverNoHijack,
+	// This does not work! APC queue is disabled in Starcraft 2
+	// Same as above but with thread hijacking instead of hook_NtQueryInformationThread. This uses APC injection
+	MmapKernelDriver,
+	// Mmap using the user mode WinAPI using thread hijacking
+	MmapUserSpace,
+};
+
+ptr_t inject(std::wstring& dll_path, void* driverctl, uint32_t pid, enum InjectMethod inject_method) {
+	// Inject DLL and hook WINAPI function
+
+	struct DllOffsets dll_offsets = dll_exports(dll_path);
+	DriverControl* _driverctl = (DriverControl*)driverctl;
+	NTSTATUS status = 0;
+	Process proc;
+	status = proc.Attach(pid);
+	if (!NT_SUCCESS(status))
+		exit(1);
+
+	// Inject and set injected_dll_base
+	ptr_t injected_dll_base = 0;
+	{
+		// Search for binary pattern to find the base address of our DLL
+		PatternSearch ps(CONST_OFFSET_VALUE);
+		std::vector<ptr_t> results;
+
+		ps.SearchRemoteWhole(proc, false, 0, results, 1);
+		bool dll_is_injected = !results.empty();
+		bool hook_required = false;
+
+		if (!dll_is_injected) {
+			// There are multiple working methods to inject the DLL
+			// proc.mmap().MapImage();
+			// status = _driverctl->MmapDll(pid, dll_path, KMmapFlags::KNoThreads | KMmapFlags::KNoTLS);
+			if (inject_method == InjectMethod::MmapKernelDriverNoHijack) {
+				// This method does not execute the DLL entry point. A manual hook installation is required.
+				status = _driverctl->MmapDll(pid, dll_path, KMmapFlags::KNoExceptions | KMmapFlags::KNoThreads | KMmapFlags::KNoTLS | KMmapFlags::KNoSxS | KMmapFlags::KNoExecution);
+				hook_required = true;
+			} else if (inject_method == InjectMethod::MmapKernelDriver) {
+				status = _driverctl->MmapDll(pid, dll_path, KMmapFlags::KNoExceptions | KMmapFlags::KNoThreads | KMmapFlags::KNoTLS | KMmapFlags::KNoSxS);
+			} else if (inject_method == InjectMethod::MmapUserSpace) {
+				auto result = proc.mmap().MapImage(dll_path, eLoadFlags::NoExceptions | eLoadFlags::NoThreads | eLoadFlags::NoTLS | eLoadFlags::NoSxS);
+				status = result.status;
+				if (result.success())
+					injected_dll_base = result.result()->baseAddress;
+			}
+			// status = _driverctl->MmapDll(pid, dll_path, KMmapFlags::KNoFlags | KMmapFlags::KNoExceptions | KMmapFlags::KNoTLS | KMmapFlags::KNoSxS | KMmapFlags::KNoThreads);
+
+			if (!NT_SUCCESS(status))
+				exit(1);
+
+			if (!injected_dll_base) {
+				ps.SearchRemoteWhole(proc, false, 0, results, 1);
+				if (results.empty())
+					exit(1);
+			}
+		}
+
+		if (!injected_dll_base) {
+			ptr_t search_string_address = results.front();
+			injected_dll_base = search_string_address - dll_offsets.search_string_offset;
+		}
+
+		if (hook_required)
+			hook_NtQueryInformationThread(dll_path, proc, injected_dll_base);
 	}
 
 	status = proc.Detach();
@@ -146,7 +184,7 @@ void starcraft2(void* driverctl, uint32_t pid, void* shared_ptr_overlay1, void* 
 
 	auto dll_path = Utils::GetExeDirectory() + L"\\starcraft2_inject.dll";
 
-	ptr_t injected_dll_base = inject(dll_path, driverctl, pid);
+	ptr_t injected_dll_base = inject(dll_path, driverctl, pid, InjectMethod::MmapKernelDriverNoHijack);
 
 	ptr_t SC2Data_address = injected_dll_base + dll_exports(dll_path).sc2_data_offset;
 	printf("sc2_data %p\n", (char*) SC2Data_address);

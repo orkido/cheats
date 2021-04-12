@@ -6,10 +6,17 @@
 #include <stdint.h>
 
 struct Player {
-    uint32_t index;
+    uint64_t address;
+
+    int32_t camera_yaw;
+    int32_t camera_pitch;
+    uint64_t camera_location;
+
     char name[128];
     uint32_t minerals;
     uint32_t vespene;
+    uint32_t resource1;
+    uint32_t resource2;
     uint32_t supply;
 };
 
@@ -46,9 +53,16 @@ struct Unit {
 };
 
 struct SC2Data {
-    uint32_t mapsize_x;
-    uint32_t mapsize_y;
+    uint8_t ingame;
+    uint32_t total_mapsize_x;
+    uint32_t total_mapsize_y;
+    uint32_t playable_mapsize_x_min;
+    uint32_t playable_mapsize_x_max;
+    uint32_t playable_mapsize_y_min;
+    uint32_t playable_mapsize_y_max;
+    uint64_t camera_bounds_address;
     uint8_t local_player_index;
+    uint8_t overwrite_local_player_index;
     uint32_t players_length;
     // Player index 16 is neutral
     struct Player players[17];

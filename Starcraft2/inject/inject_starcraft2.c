@@ -42,8 +42,6 @@ __declspec(dllexport) DWORD WINAPI worker(LPVOID lpThreadParameter);
 
 HRESULT hook_EndScene(void* pDevice);
 
-
-
 __declspec(dllexport) DECRYPT_DATA_TO_PASSED_BUFFER decrypt_data_to_passed_buffer = NULL;
 __declspec(dllexport) GET_DECRYPTOR_THIS get_decryptor_this = NULL;
 __declspec(dllexport) DECRYPT_DATA_ON_STACK decrypt_data_on_stack = NULL;
@@ -335,10 +333,17 @@ __declspec(dllexport) BOOL init_functions() {
     debug_print(LEVEL_TRACE, "init_functions()\n");
 
 #define GLOBAL_ADDRESSES sc2_base_address && sc2_base_size && winapi_NtQueryInformationThread \
-&& fn_local_player_index && fn_get_unit && fn_is_owner_ally_neutral_enemy \
-&& fn_read_health_shield_energy && fn_access_location_by_unit
+&& fn_call_wrapper \
+&& fn_local_player_index && fn_player_get && fn_player_global_list \
+&& fn_player_camera_pitch && fn_player_camera_yaw && fn_player_camera_location && fn_player_get_camera_bounds && fn_player_get_resources \
+&& fn_map_x_y_min_max \
+&& fn_unit_get \
+&& fn_is_owner_ally_neutral_enemy && fn_read_health_shield_energy && fn_access_location_by_unit
+
     if (GLOBAL_ADDRESSES)
         return TRUE;
+
+    g_sc2data.overwrite_local_player_index = 0xFF;
 
     // Only try to resolve functions once
     static int retry_counter = 0;
@@ -351,11 +356,23 @@ __declspec(dllexport) BOOL init_functions() {
 
     winapi_NtQueryInformationThread = (t_NtQueryInformationThread)GetProcAddress(GetModuleHandle("ntdll.dll"), "NtQueryInformationThread");
 
-    fn_local_player_index = (FN_LOCAL_PLAYER_INDEX)FindPattern(sc2_base_address, sc2_base_size, fn_local_player_index_pattern, fn_local_player_index_mask);
-    fn_get_unit = (FN_GET_UNIT_LIST)FindPattern(sc2_base_address, sc2_base_size, fn_get_unit_pattern, fn_get_unit_mask);
-    fn_is_owner_ally_neutral_enemy = (FN_IS_OWNER_ALLY_NEUTRAL_ENEMY)FindPattern(sc2_base_address, sc2_base_size, fn_is_owner_ally_neutral_enemy_pattern, fn_is_owner_ally_neutral_enemy_mask);
-    fn_read_health_shield_energy = (FN_READ_HEALTH_SHIELD_ENERGY)FindPattern(sc2_base_address, sc2_base_size, fn_read_health_shield_energy_pattern, fn_read_health_shield_energy_mask);
-    fn_access_location_by_unit = (FN_ACCESS_LOCATION_BY_UNIT)FindPattern(sc2_base_address, sc2_base_size, fn_access_location_by_unit_pattern, fn_access_location_by_unit_mask);
+#define PATTERN_MATCH_SC2BASE(x) \
+x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask)
+
+    PATTERN_MATCH_SC2BASE(fn_call_wrapper);
+    PATTERN_MATCH_SC2BASE(fn_local_player_index);
+    PATTERN_MATCH_SC2BASE(fn_player_get);
+    PATTERN_MATCH_SC2BASE(fn_player_global_list);
+    PATTERN_MATCH_SC2BASE(fn_player_camera_pitch);
+    PATTERN_MATCH_SC2BASE(fn_player_camera_yaw);
+    PATTERN_MATCH_SC2BASE(fn_player_camera_location);
+    PATTERN_MATCH_SC2BASE(fn_player_get_camera_bounds);
+    PATTERN_MATCH_SC2BASE(fn_player_get_resources);
+    PATTERN_MATCH_SC2BASE(fn_map_x_y_min_max);
+    PATTERN_MATCH_SC2BASE(fn_unit_get);
+    PATTERN_MATCH_SC2BASE(fn_is_owner_ally_neutral_enemy);
+    PATTERN_MATCH_SC2BASE(fn_read_health_shield_energy);
+    PATTERN_MATCH_SC2BASE(fn_access_location_by_unit);
 
     uintptr_t vtable_EndScene = NULL;
     if (HOOK_EndScene) {
@@ -396,15 +413,15 @@ __declspec(dllexport) BOOL init_functions() {
         log_level = LEVEL_ERROR;
         debug_print(LEVEL_ERROR, "init_functions(): Failed to collect offsets and data\n");
     }
-    debug_print(log_level, "sc2_base_address = %p, sc2_base_size = %lu, winapi_NtQueryInformationThread = %p, fn_local_player_index = %p\n", sc2_base_address, sc2_base_size, winapi_NtQueryInformationThread, fn_local_player_index);
-    debug_print(log_level, "fn_get_unit = %p, fn_is_owner_ally_neutral_enemy = %p, fn_read_health_shield_energy = %p, fn_access_location_by_unit = %p\n", fn_get_unit, fn_is_owner_ally_neutral_enemy, fn_read_health_shield_energy, fn_access_location_by_unit);
+    debug_print(log_level, "sc2_base_address = %p, sc2_base_size = %lu, winapi_NtQueryInformationThread = %p, fn_player_get = %p, fn_player_global_list = %p\n", sc2_base_address, sc2_base_size, winapi_NtQueryInformationThread, fn_player_get, fn_player_global_list);
+    debug_print(log_level, "fn_unit_get = %p, fn_is_owner_ally_neutral_enemy = %p, fn_read_health_shield_energy = %p, fn_access_location_by_unit = %p\n", fn_unit_get, fn_is_owner_ally_neutral_enemy, fn_read_health_shield_energy, fn_access_location_by_unit);
 
     // Install hooks as the last step because those run instantly after installation
     if (success) {
         // Install hooks
         if (HOOK_GetSystemTimePreciseAsFileTime_ENABLED) {
             debug_print(LEVEL_TRACE, "Installing GetSystemTimePreciseAsFileTime hook\n");
-            *(char**)(sc2_base_address + func_GetSystemTimePreciseAsFileTime) = hook_GetSystemTimePreciseAsFileTime;
+            *(char**)(sc2_base_address + glob_fn_GetSystemTimePreciseAsFileTime) = hook_GetSystemTimePreciseAsFileTime;
         }
         if (HOOK_EndScene) {
             debug_print(LEVEL_TRACE, "Installing EndScene hook\n");
@@ -442,18 +459,50 @@ BOOL update_data(BOOL update_finished) {
     return FALSE;
 }
 
+uint64_t call_in_main_section_context(uint64_t* func, uint64_t arg1, uint64_t arg2, uint64_t arg3);
+
+struct DT_Player* fn_player_get_wrapper(uint8_t player_index, char* player_list) {
+    return call_in_main_section_context(fn_player_get, player_index, player_list, NULL);
+}
+
 __declspec(dllexport) void work() {
     debug_print(LEVEL_TRACE, "work()\n");
 
-    if (!update_data(FALSE))
+    if (!update_data(FALSE) || !init_functions())
         return;
 
-    debug_print(LEVEL_TRACE, "fn_local_player_index()\n");
-    g_sc2data.local_player_index = fn_local_player_index();
+    debug_print(LEVEL_TRACE, "fn_player_global_list()\n");
+    char* player_list = fn_player_global_list();
+
+    for (uint32_t i = 0; i < 16; ++i) {
+        debug_print(LEVEL_TRACE, "glob_ingame\n");
+        g_sc2data.ingame = *(uint8_t*)(sc2_base_address + glob_ingame);
+        if (!g_sc2data.ingame)
+            break;
+
+        debug_print(LEVEL_TRACE, "fn_player_get()\n");
+        struct DT_Player* in_player = fn_player_get_wrapper(i, player_list);
+        struct Player* out_player = &g_sc2data.players[i];
+
+        out_player->address = in_player;
+
+        out_player->camera_pitch = fn_player_camera_pitch(i);
+        out_player->camera_yaw = fn_player_camera_yaw(i);
+
+        out_player->minerals = fn_player_get_resources(in_player, 0);
+        out_player->vespene = fn_player_get_resources(in_player, 1);
+        out_player->resource1 = fn_player_get_resources(in_player, 2);
+        out_player->resource2 = fn_player_get_resources(in_player, 3);
+    }
+    
+    if (g_sc2data.overwrite_local_player_index == 0xFF)
+        g_sc2data.local_player_index = fn_local_player_index();
+    else
+        g_sc2data.local_player_index = g_sc2data.overwrite_local_player_index;
 
     for (uint32_t i = 0; i < *(uint32_t*)(sc2_base_address + units_list_length) && i < sizeof(g_sc2data.units) / sizeof(g_sc2data.units[0]); ++i) {
-        debug_print(LEVEL_TRACE, "fn_get_unit()\n");
-        struct DT_Unit* in_unit = fn_get_unit(sc2_base_address + units_list, i);
+        debug_print(LEVEL_TRACE, "fn_unit_get()\n");
+        struct DT_Unit* in_unit = fn_unit_get(sc2_base_address + units_list, i);
         struct Unit* out_unit = &g_sc2data.units[i];
 
         out_unit->address = in_unit;
@@ -498,8 +547,16 @@ __declspec(dllexport) void work() {
 
     debug_print(LEVEL_TRACE, "general details\n");
     g_sc2data.units_length = *(uint32_t*)(sc2_base_address + units_list_length);
-    g_sc2data.mapsize_x = *(uint32_t*)(sc2_base_address + mapsize_x);
-    g_sc2data.mapsize_y = *(uint32_t*)(sc2_base_address + mapsize_y);
+
+    struct DT_MapSize* camera_bounds = fn_player_get_camera_bounds(16);
+    g_sc2data.camera_bounds_address = camera_bounds;
+    g_sc2data.playable_mapsize_x_max = camera_bounds->x_max; // - 7; // On both sides +7
+    g_sc2data.playable_mapsize_x_min = camera_bounds->x_min; // - 7; // On both sides +7
+    g_sc2data.playable_mapsize_y_max = camera_bounds->y_max; // - 3; // On both sides +3
+    g_sc2data.playable_mapsize_y_min = camera_bounds->y_min; // - 3; // On both sides +3
+    struct DT_MapSize* map_bounds = fn_map_x_y_min_max();
+    g_sc2data.total_mapsize_x = map_bounds->x_max - map_bounds->x_min; // min. x is always 0
+    g_sc2data.total_mapsize_y = map_bounds->y_max - map_bounds->y_min; // min. y is always 0
 
     update_data(TRUE);
 }
@@ -562,8 +619,7 @@ hook_NtQueryInformationThread(
         return status;
 
 #define ThreadQuerySetWin32StartAddress 9
-    // This feature can be disabled because we start the thread from inside the target program execution environment and therefore will have
-    // the same thread start address that all the other threads have. But still, this can be convenient to bypass debugger detection.
+    // This can be convenient to bypass debugger detection
     if (THREAD_START_ADDRESS_ENABLED && ThreadInformationClass == ThreadQuerySetWin32StartAddress) {
         char* expected_start_function = sc2_base_address + thread_start_address;
         if (*(char**)ThreadInformation != expected_start_function) {

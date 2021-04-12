@@ -6,11 +6,10 @@ namespace Starcraft2
 {
 class Offsets {
 public:
-	// v5.0.6.83830
-	static const uint32_t func_NtQueryInformationThread = 0x39F47E0;
-
-	static const uint32_t checksum = 0x03E0A564;
-	static const uint32_t timestamp = 0x601351C7;
+	// v5.0.7.84643
+	static const uint32_t func_NtQueryInformationThread = 0x39D57A0;
+	static const uint32_t checksum = 0x03DF0D2F;
+	static const uint32_t timestamp = 0x6067BEAC;
 
 	// Offsets in player struct
 	// "isme", eigene ID?

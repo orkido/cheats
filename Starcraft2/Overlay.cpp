@@ -68,22 +68,27 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
             overlay->data.change_queue.push(QtOverlay::EntityChange(i, type_changed, pos_changed));
     }
 
+    // TODO: Following is only valid for radar overlay
     // Update camera
     IF_UPDATE_SET_TRUE(overlay->data.camera_type, QtOverlay::CameraType::OrthographicProjection, overlay->data.camera_type_changed);
 
-    auto mapsize_x = sc2_data->mapsize_x;
-    auto mapsize_y = sc2_data->mapsize_y;
+    auto playable_mapsize_x_min = sc2_data->playable_mapsize_x_min;
+    auto playable_mapsize_y_min = sc2_data->playable_mapsize_y_min;
+    auto playable_mapsize_x_max = sc2_data->playable_mapsize_x_max;
+    auto playable_mapsize_y_max = sc2_data->playable_mapsize_y_max;
+    auto playable_mapsize_x = playable_mapsize_x_max - playable_mapsize_x_min;
+    auto playable_mapsize_y = playable_mapsize_y_max - playable_mapsize_y_min;
 
-    constexpr float vector_length = 1000.0f; // Use large rotation vectors to mitigate cancellation in add/sub operations in fpu
-    auto camera_position = QVector3D(mapsize_x / 2.0f, mapsize_y / 2.0f, 2000.0f);
+    constexpr float vector_length = 100.0f; // Use large rotation vectors to mitigate cancellation in add/sub operations in fpu
+    auto camera_position = QVector3D(playable_mapsize_x / 2.0f + playable_mapsize_x_min, playable_mapsize_y / 2.0f + playable_mapsize_y_min, 2000.0f);
     auto camera_angle = QVector3D(-90.0f, 0.0f, 0.0f);
     auto camera_fov = QtOverlay::overlay_config.overlay_config_fov;
     auto camera_up_vector = QVector3D(0.0f, 0.0f, vector_length);
     auto camera_view_direction = QVector3D(0.0f, vector_length, 0.0f);
-    float camera_bottom = -(mapsize_y / 2.0f);
-    float camera_top = mapsize_y / 2.0f;
-    float camera_right = mapsize_x / 2.0f;
-    float camera_left = -(mapsize_x / 2.0f);
+    float camera_bottom = -(playable_mapsize_y / 2.0f);
+    float camera_top = playable_mapsize_y / 2.0f;
+    float camera_right = playable_mapsize_x / 2.0f;
+    float camera_left = -(playable_mapsize_x / 2.0f);
 
     IF_UPDATE_SET_TRUE(overlay->data.camera_position, camera_position, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_angle, camera_angle, overlay->data.camera_changed);
@@ -96,6 +101,16 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
     IF_UPDATE_SET_TRUE(overlay->data.camera_left, camera_left, overlay->data.camera_changed);
 
     overlay->data_mutex.unlock();
+
+    // Create minimap size
+    QSize wSize(playable_mapsize_x, playable_mapsize_y);
+    wSize.scale(355, 346, Qt::KeepAspectRatio);
+    // Center minimap over real minimap
+    QRect rect(QPoint(), wSize);
+    // overlay_radar->screen()->size().width()
+    rect.moveCenter(QPoint(38 + (355 / 2), overlay->screen()->size().height() - (18 + (346 / 2))));
+
+    emit overlay->geometryChanged(rect);
 }
 
 void Overlay::update_overlay(struct SC2Data* sc2_data) {
@@ -111,15 +126,5 @@ void Overlay::update_overlay(struct SC2Data* sc2_data) {
         return;
 
     emit overlay_radar->dataChanged();
-
-    // Create minimap size
-    QSize wSize(sc2_data->mapsize_x, sc2_data->mapsize_y);
-    wSize.scale(425, 405, Qt::KeepAspectRatio);
-    // Center minimap over real minimap
-    QRect rect(QPoint(), wSize);
-    // overlay_radar->screen()->size().width()
-    rect.moveCenter(QPoint(-20 + (425 / 2), overlay_radar->screen()->size().height() - (2 + (405 / 2))));
-
-    emit overlay_radar->geometryChanged(rect);
 }
 }

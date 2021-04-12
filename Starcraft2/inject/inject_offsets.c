@@ -33,6 +33,40 @@ struct DT_Unit
     __int32 m_MaxShield;
     char pad_0x01AC[192];
 };
+
+struct DT_Player
+{
+    unsigned __int32 index;
+    char pad_0x0000[20];
+    unsigned __int32 index_unknown;
+    __int64 camera_target;
+    char pad_0x0024[28];
+    unsigned __int8 control_player_id;
+    char pad_0x0041[19];
+    unsigned __int8 interesting_value;
+    unsigned __int8 interesting_value2;
+    char pad_0x0056[122];
+    __int64 m_ChangesWhenMoving2;
+    char gapD8[88];
+    unsigned __int32 player_id;
+    char gap134[4];
+    __int64 player_visible_num;
+    char pad_0x0140[88];
+    __int32 m_MissingHealth;
+    __int32 m_Shields;
+    __int32 m_Energy;
+    __int32 m_MaxHealth;
+    __int32 m_MaxShield;
+    char pad_0x01AC[192];
+};
+
+struct DT_MapSize {
+    uint32_t x_min;
+    uint32_t y_min;
+    uint32_t x_max;
+    uint32_t y_max;
+};
+
 #pragma pack(pop)
 
 /*
@@ -59,27 +93,78 @@ struct DT_VectorLocation {
     int32_t unknown4;
 };
 
-const char* fn_local_player_index_pattern = "\x8B\x15\x00\x00\x00\x00\x03\x15\x00\x00\x00\x00\x8B\x0D\x00\x00"
-                                            "\x00\x00\x33\x0D\x00\x00\x00\x00\x44\x8B\x05\x00\x00\x00\x00\x89"
-                                            "\x54\x24\x08\x89\x4C\x24\x0C\x48\x8B\x44\x24\x00\x8B\x00\x41\x2B"
-                                            "\xC0\xF7\xD0\xC1\xE8\x04\xA8\x01\x75\x2D\x89\x54\x24\x08\x89\x4C"
-                                            "\x24\x0C\x48\x8B\x44\x24\x00\x8B\x00\x41\x2B\xC0\xF7\xD0\xC1\xE8"
-                                            "\x05\xA8\x01\x75\x12\x89\x54\x24\x08\x89\x4C\x24\x0C\x48\x8B\x44"
-                                            "\x24\x00\x0F\xB6\x40\x0C\xC3";
-const char* fn_local_player_index_mask =    "xx????xx????xx????xx????xxx????xxxxxxxxxxxx?xxxxxxxxxxxxxxxxxxxx"
-                                            "xxxxxx?xxxxxxxxxxxxxxxxxxxxxxxxxx?xxxxx";
+// call [rax]
+// add rsp, 0x28
+// ret
+const char* fn_call_wrapper_pattern = "\xE8\x00\x00\x00\x00\x48\x83\xC4\x48\xC3";
+const char* fn_call_wrapper_mask = "x????xxxxx";
+void* fn_call_wrapper = NULL;
+
+const char* fn_local_player_index_pattern = "\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x84\xC0\x75\x33";
+const char* fn_local_player_index_mask = "xxxxx????xxxx";
 typedef uint8_t(__stdcall* FN_LOCAL_PLAYER_INDEX) ();
 FN_LOCAL_PLAYER_INDEX fn_local_player_index = NULL;
 
+// If player_list is NULL then the global player list is resolved in the function.
+// This function cannot be used from outside of the main Starcraft 2 code section due to protection.
+const char* fn_player_get_pattern = "\x40\x55\x48\x8B\xEC\x48\x83\xEC\x50\x4C\x8B\xCA\x44\x0F\xB6\xD1"
+                                    "\x80\xF9\x10\x72\x08\x33\xC0\x48\x83\xC4\x50\x5D\xC3";
+const char* fn_player_get_mask = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+typedef struct DT_Player* (__fastcall* FN_PLAYER_GET) (uint8_t player_index, char* player_list);
+FN_PLAYER_GET fn_player_get = NULL;
+
+const char* fn_player_global_list_pattern = "\x8B\x05\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x05\x00\x00\x00"
+                                            "\x00\x03\xC8\x8B\x05\x00\x00\x00\x00\x2B\x05\x00\x00\x00\x00\xF7"
+                                            "\xD0\x89\x4C\x24\x08\x89\x44\x24\x0C\x48\x8B\x44\x24\x00\xC3";
+const char* fn_player_global_list_mask = "xx????xx????x????xxxx????xx????xxxxxxxxxxxxxx?x";
+typedef char* (__fastcall* FN_PLAYER_GLOBAL_LIST) ();
+FN_PLAYER_GLOBAL_LIST fn_player_global_list = NULL;
+
+const char* fn_player_camera_pitch_pattern = "\x48\x89\x5C\x24\x00\x55\x48\x8D\xAC\x24\x00\x00\x00\x00\x48\x81"
+                                             "\xEC\x00\x00\x00\x00\x8B\xD9\x83\xF9\x0F\x0F\x87\x00\x00\x00\x00"
+                                             "\x80\x3D\x00\x00\x00\x00\x00\x74\x24";
+const char* fn_player_camera_pitch_mask = "xxxx?xxxxx????xxx????xxxxxxx????xx?????xx";
+typedef int32_t(__fastcall* FN_PLAYER_CAMERA_PITCH) (uint32_t player_index);
+FN_PLAYER_CAMERA_PITCH fn_player_camera_pitch = NULL;
+
+const char* fn_player_camera_yaw_pattern = "\x48\x89\x5C\x24\x00\x55\x48\x8D\xAC\x24\x00\x00\x00\x00\x48\x81"
+                                           "\xEC\x00\x00\x00\x00\x8B\xD9\x83\xF9\x0F\x0F\x87\x00\x00\x00\x00"
+                                           "\x80\x3D\x00\x00\x00\x00\x00\x74\x33";
+const char* fn_player_camera_yaw_mask = "xxxx?xxxxx????xxx????xxxxxxx????xx?????xx";
+typedef int32_t(__fastcall* FN_PLAYER_CAMERA_YAW) (uint32_t player_index);
+FN_PLAYER_CAMERA_YAW fn_player_camera_yaw = NULL;
+
+const char* fn_player_camera_location_pattern = "\x48\x89\x5C\x24\x00\x55\x48\x8D\xAC\x24\x00\x00\x00\x00\x48\x81"
+                                                "\xEC\x00\x00\x00\x00\x8B\xD9\x83\xF9\x0F\x0F\x87\x00\x00\x00\x00"
+                                                "\x80\x3D\x00\x00\x00\x00\x00\x74\x33";
+const char* fn_player_camera_location_mask = "xxxx?xxxxx????xxx????xxxxxxx????xx?????xx";
+typedef uint64_t(__fastcall* FN_PLAYER_CAMERA_LOCATION) (uint32_t player_index);
+FN_PLAYER_CAMERA_LOCATION fn_player_camera_location = NULL;
+
+const char* fn_player_get_camera_bounds_pattern = "\x8B\x05\x00\x00\x00\x00\x2B\x05\x00\x00\x00\x00\x2D\x00\x00\x00\x00\x89\x44\x24\x10\x8B\x05\x00\x00\x00\x00\x33\x05\x00\x00\x00\x00\x89\x44\x24\x14\x0F\xB6\xC1\x48\x83\xC0\x1F\x48\xC1\xE0\x04\x48\x03\x44\x24\x00\xC3";
+const char* fn_player_get_camera_bounds_mask = "xx????xx????x????xxxxxx????xx????xxxxxxxxxxxxxxxxxxx?x";
+typedef struct DT_MapSize*(__fastcall* FN_PLAYER_GET_CAMERA_BOUNDS) (uint8_t player_index);
+FN_PLAYER_GET_CAMERA_BOUNDS fn_player_get_camera_bounds = NULL;
+
+// resource_selection must be in range [0; 3]
+const char* fn_player_get_resources_pattern = "\x8D\x42\x68\x4C\x8D\x04\xC1\x8B\x05\x00\x00\x00\x00";
+const char* fn_player_get_resources_mask = "xxxxxxxxx????";
+typedef int32_t(__fastcall* FN_PLAYER_GET_RESOURCES) (struct DT_Player* player, uint64_t resource_selection);
+FN_PLAYER_GET_RESOURCES fn_player_get_resources = NULL;
+
+const char* fn_map_x_y_min_max_pattern = "\x8B\x05\x00\x00\x00\x00\x2B\x05\x00\x00\x00\x00\x2D\x00\x00\x00\x00\x89\x44\x24\x08\x8B\x05\x00\x00\x00\x00\x33\x05\x00\x00\x00\x00\x89\x44\x24\x0C\x48\x8B\x44\x24\x00\x48\x05\xD0\x00\x00\x00\xC3";
+const char* fn_map_x_y_min_max_mask = "xx????xx????x????xxxxxx????xx????xxxxxxxx?xxxxxxx";
+typedef struct DT_MapSize* (__fastcall* FN_MAP_X_Y_MIN_MAX) ();
+FN_MAP_X_Y_MIN_MAX fn_map_x_y_min_max = NULL;
 
 // This returns a unit object. unit_list must be (sc2_base + units_list) and unit_index a value below
 // *(sc2_base + units_list_length)
-const char* fn_get_unit_pattern = "\x40\x53\x48\x83\xEC\x20\x8B\xC2\x8B\xDA\x48\xC1\xE8\x04\x83\xE3"
-                                  "\x0F\x48\x83\xC0\x17\x48\x8D\x14\xC1\x8B\x05\x00\x00\x00\x00\x83"
+const char* fn_unit_get_pattern = "\x40\x53\x48\x83\xEC\x20\x8B\xC2\x8B\xDA\x48\xC1\xE8\x04\x83\xE3"
+                                  "\x0F\x48\x83\xC0\x00\x48\x8D\x14\xC1\x8B\x05\x00\x00\x00\x00\x83"
                                   "\xF8\x0F";
-const char* fn_get_unit_mask = "xxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx";
-typedef struct DT_Unit* (__fastcall* FN_GET_UNIT_LIST) (char* unit_list, uint32_t unit_index);
-FN_GET_UNIT_LIST fn_get_unit = NULL;
+const char* fn_unit_get_mask = "xxxxxxxxxxxxxxxxxxxx?xxxxxx????xxx";
+typedef struct DT_Unit* (__fastcall* FN_UNIT_GET_LIST) (char* unit_list, uint32_t unit_index);
+FN_UNIT_GET_LIST fn_unit_get = NULL;
 
 // This returns 2 if one of the players is neutral (index == 16) or they are neither allies nor enemies. Else
 // This returns 0 if index of player and other_player are equal (player is self). Else
@@ -118,8 +203,12 @@ const char* fn_EndScene_mask = "xxxxxxxxxx?????xxxx?xxxxxxxxxx";
 typedef long (*FN_END_SCENE) (void* pDevice);
 FN_END_SCENE fn_EndScene = NULL;
 
+const char* glob_fn_NtQueryInformationThread_pattern = "\x48\x8B\x0D\x00\x00\x00\x00\x48\x89\x44\x24\x00\x48\x85\xC9";
+const char* glob_fn_NtQueryInformationThread_mask = "xxx????xxxx?xxx";
+// IDA pattern: 48 8B 0D ? ? ? ? 48 89 44 24 ? 48 85 C9
+
 // v5.0.6.83830
-const uint32_t EndScene_level0 = 0x43DD178;
+const uint32_t EndScene_level0 = 0x43BDC28;
 const uint32_t EndScene_level1 = 0x28;
 const uint32_t EndScene_level2 = 0x0;
 const uint32_t EndScene_level3 = 0x150; // 0x150 = 8 * 42 (42 is the vtable index of EndScene)
@@ -130,17 +219,15 @@ const uint32_t EndScene_level3 = 0x150; // 0x150 = 8 * 42 (42 is the vtable inde
 #define HOOK_EndScene 1
 
 // Only required if THREAD_START_ADDRESS_ENABLED is enabled
-// v5.0.6.83830
-const uint32_t thread_start_address = 0x1E0E06C;
+// v5.0.7.84643
+const uint32_t thread_start_address = 0x1E000FC;
 
 // Only required if HOOK_GetSystemTimePreciseAsFileTime_ENABLED is enabled
-// v5.0.6.83830
-const uint32_t func_GetSystemTimePreciseAsFileTime = 0x39519B8;
+// v5.0.7.84643
+const uint32_t glob_fn_GetSystemTimePreciseAsFileTime = 0x39329B8;
 
-// v5.0.6.83830
+// v5.0.7.84643
 // unit index maximum 14-bits
-const uint32_t units_list = 0x3B83E00;
-const uint32_t units_list_length = 0x3B83E00 + 4; // units_list + 4
-const uint32_t players_list = 0x3C37720;
-const uint32_t mapsize_x = 0x3D984E8;
-const uint32_t mapsize_y = 0x3D984E8 + 4; // mapsize_x + 4
+const uint32_t units_list = 0x3B64E00;
+const uint32_t units_list_length = 0x3B64E00 + 4; // units_list + 4
+const uint32_t glob_ingame = 0x3E7905A; // bool
