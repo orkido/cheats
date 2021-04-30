@@ -5,7 +5,8 @@
 #include <vector>
 #include <memory>
 #include <QtGui/qvector3d.h>
-#include <Qt3DCore/qentity.h>
+#include <QtQuick3D>
+//#include <Qt3DCore/qentity.h>
 
 namespace QtOverlay {
 enum class entity_type : uint32_t {
@@ -42,9 +43,6 @@ public:
         max_shield = 0;
     }
 
-    virtual Entity* clone() = 0;
-    virtual Qt3DCore::QEntity* to_qentity() = 0;
-
     entity_type type;
     QVector3D position;
 
@@ -54,25 +52,15 @@ public:
     uint32_t max_shield;
 };
 
-class FirstPersonEntity : public Entity {
-    virtual FirstPersonEntity* clone() override { return new FirstPersonEntity(*this); }
-    virtual Qt3DCore::QEntity* to_qentity() override;
-};
-
-class RadarEntity : public Entity {
-    virtual RadarEntity* clone() override { return new RadarEntity(*this); }
-    virtual Qt3DCore::QEntity* to_qentity() override;
-};
-
 class EntityChange {
 public:
-    explicit EntityChange(uint32_t shared_entity_list_index, bool type_changed, bool pos_changed) {
-        this->shared_entity_list_index = shared_entity_list_index;
+    explicit EntityChange(uint32_t entity_list_index, bool type_changed, bool pos_changed) {
+        this->entity_list_index = entity_list_index;
         this->type_changed = type_changed;
         this->pos_changed = pos_changed;
     }
 
-    uint32_t shared_entity_list_index;
+    uint32_t entity_list_index;
 
     bool type_changed;
     bool pos_changed;
@@ -87,12 +75,12 @@ enum CameraType {
 class DataContainer {
 public:
     // 3D first person overlay data
-    std::vector<std::unique_ptr<Entity>> entity_list;
+    std::vector<std::shared_ptr<Entity>> entity_list;
     std::queue<EntityChange> change_queue;
-    QVector3D camera_position, camera_angle;
-    QVector3D camera_up_vector;
-    QVector3D camera_view_direction;
-    int32_t camera_fov = 1; // Start with valid value
+    QVector3D camera_position, camera_rotation;
+    // QVector3D camera_up_vector;
+    // QVector3D camera_view_direction;
+    int32_t camera_fov = 1;
     bool camera_changed = false;
     CameraType camera_type = CameraType::PerspectiveProjection;
     bool camera_type_changed = false;
@@ -102,6 +90,9 @@ public:
     float camera_top;
     float camera_right;
     float camera_left;
+
+    bool window_changed;
+    QRect window_rectangle;
 };
 
 struct OverlayConfig {

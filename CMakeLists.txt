@@ -10,9 +10,6 @@ set(Starcraft2 TRUE)
 set(Civilization TRUE)
 set(Apex TRUE)
 
-# cmake, ninja, conan, perl, vulkan in PATH (https://vulkan.lunarg.com/sdk/home)
-# "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-# conan.exe install qt3d/6.0.3@qt/final --build=missing --profile=C:/Qt/Tools/Conan/profiles/qt-6.0.3-msvc2019_64 -s build_type=Debug -g cmake_paths -g=cmake -g deploy
 # This is set automatically based on the above settings. Do not change
 set(QT_Overlay FALSE)
 
@@ -27,9 +24,10 @@ if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         # 64 bits
         set(QT_PATHS
-            "C:/Qt/6.0.3/msvc2019_64"
+            "C:/Qt/6.1.0/msvc2019_64"
+            #"C:/Qt/6.0.3/msvc2019_64"
             "C:/Qt/5.15.2/msvc2019_64"
-            "C:/Qt/5.15.1/msvc2019_64"
+            #"C:/Qt/5.15.1/msvc2019_64"
         )
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
         # 32 bits
@@ -44,21 +42,41 @@ find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED HINTS ${QT_PATHS})
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS CoreTools REQUIRED HINTS ${QT_PATHS})
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS GuiTools Gui REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS WidgetsTools Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS QmlTools REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Qml REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS QmlModels REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS ShaderToolsTools REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS ShaderTools REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick3DRuntimeRender REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick3DTools REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick3D REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS QuickControls2 REQUIRED)
+#find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DQuick REQUIRED)
+#find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DQuickExtras REQUIRED)
 
 # Automatic dependency resolve does not work. We have to import Qt3D dependencies manually for now
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Concurrent REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Network REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS OpenGL REQUIRED)
 
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DCore 3DExtras 3DRender REQUIRED)
-
-#if (${QT_VERSION_MAJOR} MATCHES "6")
-#    include(${CMAKE_CURRENT_SOURCE_DIR}/Qt3D_x64_Debug/conan_paths.cmake)
-#endif()
-#find_package(Qt${QT_VERSION_MAJOR}3DCore REQUIRED)
-#find_package(Qt${QT_VERSION_MAJOR}3DExtras REQUIRED)
-#find_package(Qt${QT_VERSION_MAJOR}3DRender REQUIRED)
-#find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DCore 3DExtras 3DRender REQUIRED)
+if (${USE_QT_CONAN})
+    # cmake, ninja, conan, perl, vulkan in PATH (https://vulkan.lunarg.com/sdk/home)
+    # "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+    # conan.exe install qt3d/6.0.3@qt/final --build=missing --profile=C:/Qt/Tools/Conan/profiles/qt-6.0.3-msvc2019_64 -s build_type=Debug -g cmake_paths -g=cmake -g deploy
+    if (${QT_VERSION_MAJOR} MATCHES "6")
+        IF(CMAKE_BUILD_TYPE MATCHES Debug)
+            include(${CMAKE_CURRENT_SOURCE_DIR}/Qt3D_x64_Debug/conan_paths.cmake)
+        else()
+            include(${CMAKE_CURRENT_SOURCE_DIR}/Qt3D_x64_Release/conan_paths.cmake)
+        ENDIF()
+    endif()
+    find_package(Qt${QT_VERSION_MAJOR}3DCore REQUIRED)
+    find_package(Qt${QT_VERSION_MAJOR}3DExtras REQUIRED)
+    find_package(Qt${QT_VERSION_MAJOR}3DRender REQUIRED)
+else()
+    #find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DCore 3DExtras 3DRender REQUIRED)
+endif()
 
 set(
     "speedrunners_src"
@@ -159,7 +177,7 @@ else()
     add_compile_definitions(QT_OVERLAY_ENABLED=0)
 endif()
 
-add_executable(
+qt_add_executable(
     speedrunners
     "${speedrunners_src}"
 )
@@ -182,11 +200,27 @@ target_link_libraries(
         PRIVATE Qt${QT_VERSION_MAJOR}::Core
         PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
         PRIVATE Qt${QT_VERSION_MAJOR}::Gui
-        PRIVATE Qt${QT_VERSION_MAJOR}::3DCore
-        PRIVATE Qt${QT_VERSION_MAJOR}::3DExtras
-        PRIVATE Qt${QT_VERSION_MAJOR}::3DRender
+        PRIVATE Qt${QT_VERSION_MAJOR}::Quick
+        PRIVATE Qt${QT_VERSION_MAJOR}::Quick3D
+        #PRIVATE Qt${QT_VERSION_MAJOR}::3DQuickExtras
+        PRIVATE Qt${QT_VERSION_MAJOR}::QuickControls2
+        #PRIVATE Qt${QT_VERSION_MAJOR}::3DCore
+        #PRIVATE Qt${QT_VERSION_MAJOR}::3DExtras
+        #PRIVATE Qt${QT_VERSION_MAJOR}::3DRender
         PRIVATE BlackBone
         PRIVATE diaguids
+)
+
+# Resources:
+set(qml_resource_files
+    "QtOverlay/overlay.qml"
+)
+
+qt6_add_resources(speedrunners "qml"
+    PREFIX
+        "/"
+    FILES
+        ${qml_resource_files}
 )
 
 # Deploy Qt DLL dependencies in install path
@@ -195,7 +229,8 @@ if (WIN32)
     get_filename_component(QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE ${QT${QT_VERSION_MAJOR}_QMAKE_EXECUTABLE} PATH)
     set(QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE "${QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE}/windeployqt.exe")
     add_custom_command(TARGET speedrunners POST_BUILD
-       COMMAND ${QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE} $<TARGET_FILE_DIR:speedrunners>)
+        COMMAND ${QT${QT_VERSION_MAJOR}_WINDEPLOYQT_EXECUTABLE} --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/QtOverlay" $<TARGET_FILE_DIR:speedrunners>/$<TARGET_FILE_NAME:speedrunners> || (exit 0)
+    )
 endif(WIN32)
 
 target_include_directories(

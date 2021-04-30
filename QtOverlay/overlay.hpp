@@ -1,41 +1,37 @@
-#pragma once
+#ifndef overlay_hpp
+#define overlay_hpp
 
 #include "overlay_data_interface.hpp"
 
+#include <QtQuick3D>
 #include <QObject>
+#include <QQmlApplicationEngine>
 #include <QWidget>
-#include <QPainter>
-#include <QTimer>
-#include <Qt3DExtras/Qt3DExtras>
-#include <QWindow>
 
 #include <mutex>
+#include <vector>
 
 namespace QtOverlay {
-    class Overlay : public Qt3DExtras::Qt3DWindow
+    class Overlay : QQmlApplicationEngine
     {
         Q_OBJECT
     public:
-        explicit Overlay(QWidget* parent = nullptr);
-        void updateOverlay();
+        explicit Overlay();
+
+        QSize screen_size();
 
         std::mutex data_mutex;
         DataContainer data;
 
+    private:
+        QQuickWindow* window;
+        std::vector<int> index_map;
+
     public slots:
         void onDataChanged();
-        void onGeometryChanged(QRect);
 
     signals:
         void dataChanged();
-        void geometryChanged(QRect);
-
-    private:
-        QTimer draw_timer;
-
-        Qt3DCore::QEntity* rootEntity;
-        Qt3DRender::QDirectionalLight* light;
-        std::vector<Qt3DCore::QEntity*> overlay_entity_list;
-        //QWidget* container;
     };
 }
+#endif
