@@ -182,6 +182,29 @@ ptr_t inject(std::wstring& dll_path, void* driverctl, uint32_t pid, enum InjectM
 void starcraft2(void* driverctl, uint32_t pid, void* shared_ptr_overlay1, void* shared_ptr_overlay2) {
 	DriverControl* _driverctl = (DriverControl*)driverctl;
 
+	while (1) {
+		// Let the game initialize before doing anything
+		HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+		if (!hProc)
+			return;
+		FILETIME fProcessTime, ftExit, ftKernel, ftUser;
+		GetProcessTimes(hProc, &fProcessTime, &ftExit, &ftKernel, &ftUser);
+		CloseHandle(hProc);
+		FILETIME current_time;
+		GetSystemTimeAsFileTime(&current_time);
+
+		ULARGE_INTEGER current, startup_time;
+		current.LowPart = current_time.dwLowDateTime;
+		current.HighPart = current_time.dwHighDateTime;
+		startup_time.LowPart = fProcessTime.dwLowDateTime;
+		startup_time.HighPart = fProcessTime.dwHighDateTime;
+
+		// Process running since 20s
+		if ((current.QuadPart - startup_time.QuadPart) / 10 / 1000 / 1000 > 20) {
+			break;
+		}
+	}
+
 	auto dll_path = Utils::GetExeDirectory() + L"\\starcraft2_inject.dll";
 
 	ptr_t injected_dll_base = inject(dll_path, driverctl, pid, InjectMethod::MmapKernelDriverNoHijack);
