@@ -21,7 +21,7 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
 
     // Fill overlay data list with default elements until its greater or equal our element count
     for (uint32_t i = overlay->data.entity_list.size(); i < sc2_data->units_length; ++i) {
-        overlay->data.entity_list.push_back(std::unique_ptr<QtOverlay::Entity>(new QtOverlay::RadarEntity()));
+        overlay->data.entity_list.push_back(std::shared_ptr<QtOverlay::Entity>(new QtOverlay::Entity()));
     }
 
     // Update overlay data list and create EntityChange elements if required
@@ -32,16 +32,20 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
         bool type_changed = false;
         bool pos_changed = false;
 
-        if (src_entity.team == Team::Self) {
-            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::Player, type_changed);
-        } else if (src_entity.team == Team::Ally) {
-            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerTeam, type_changed);
-        } else if (src_entity.team == Team::Enemy) {
-            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerEnemy, type_changed);
-        } else if (src_entity.team == Team::Neutral) {
-            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerNPC, type_changed);
+        if (entity->current_health > 0) {
+            if (src_entity.team == Team::Self) {
+                IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::Player, type_changed);
+            } else if (src_entity.team == Team::Ally) {
+                IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerTeam, type_changed);
+            } else if (src_entity.team == Team::Enemy) {
+                IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerEnemy, type_changed);
+            } else if (src_entity.team == Team::Neutral) {
+                IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerNPC, type_changed);
+            } else {
+                IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerEnemy, type_changed);
+            }
         } else {
-            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerEnemy, type_changed);
+            IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::PlayerDead, type_changed);
         }
 
         IF_UPDATE_SET_TRUE(entity->current_health, src_entity.health, type_changed);
@@ -80,27 +84,25 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
     auto playable_mapsize_y = playable_mapsize_y_max - playable_mapsize_y_min;
 
     constexpr float vector_length = 100.0f; // Use large rotation vectors to mitigate cancellation in add/sub operations in fpu
-    auto camera_position = QVector3D(playable_mapsize_x / 2.0f + playable_mapsize_x_min, playable_mapsize_y / 2.0f + playable_mapsize_y_min, 2000.0f);
-    auto camera_angle = QVector3D(-90.0f, 0.0f, 0.0f);
+    auto camera_position = QVector3D(playable_mapsize_x / 2.0f + playable_mapsize_x_min, playable_mapsize_y / 2.0f + playable_mapsize_y_min, 4000.0f);
+    auto camera_rotation = QVector3D(0.0f, 0.0f, 0.0f);
     auto camera_fov = QtOverlay::overlay_config.overlay_config_fov;
-    auto camera_up_vector = QVector3D(0.0f, 0.0f, vector_length);
-    auto camera_view_direction = QVector3D(0.0f, vector_length, 0.0f);
+    // auto camera_up_vector = QVector3D(0.0f, 0.0f, vector_length);
+    // auto camera_view_direction = QVector3D(0.0f, vector_length, 0.0f);
     float camera_bottom = -(playable_mapsize_y / 2.0f);
     float camera_top = playable_mapsize_y / 2.0f;
     float camera_right = playable_mapsize_x / 2.0f;
     float camera_left = -(playable_mapsize_x / 2.0f);
 
     IF_UPDATE_SET_TRUE(overlay->data.camera_position, camera_position, overlay->data.camera_changed);
-    IF_UPDATE_SET_TRUE(overlay->data.camera_angle, camera_angle, overlay->data.camera_changed);
+    IF_UPDATE_SET_TRUE(overlay->data.camera_rotation, camera_rotation, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_fov, camera_fov, overlay->data.camera_changed);
-    IF_UPDATE_SET_TRUE(overlay->data.camera_up_vector, camera_up_vector, overlay->data.camera_changed);
-    IF_UPDATE_SET_TRUE(overlay->data.camera_view_direction, camera_view_direction, overlay->data.camera_changed);
+    // IF_UPDATE_SET_TRUE(overlay->data.camera_up_vector, camera_up_vector, overlay->data.camera_changed);
+    // IF_UPDATE_SET_TRUE(overlay->data.camera_view_direction, camera_view_direction, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_bottom, camera_bottom, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_top, camera_top, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_right, camera_right, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_left, camera_left, overlay->data.camera_changed);
-
-    overlay->data_mutex.unlock();
 
     // Create minimap size
     QSize wSize(playable_mapsize_x, playable_mapsize_y);
@@ -108,12 +110,19 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
     // Center minimap over real minimap
     QRect rect(QPoint(), wSize);
     // overlay_radar->screen()->size().width()
-    rect.moveCenter(QPoint(38 + (355 / 2), overlay->screen()->size().height() - (18 + (346 / 2))));
+    rect.moveCenter(QPoint(38 + (355 / 2), overlay->screen_size().height() - (18 + (346 / 2))));
 
-    emit overlay->geometryChanged(rect);
+    IF_UPDATE_SET_TRUE(overlay->data.window_rectangle, rect, overlay->data.window_changed);
+
+    overlay->data_mutex.unlock();
+
+    emit overlay->dataChanged();
 }
 
 void Overlay::update_overlay(struct SC2Data* sc2_data) {
+    if (!sc2_data->startup_done)
+        return;
+
     std::shared_ptr<QtOverlay::Overlay>* overlay1_ = (std::shared_ptr<QtOverlay::Overlay>*)shared_ptr_overlay1;
     std::shared_ptr<QtOverlay::Overlay> overlay_third_person = *overlay1_;
 
@@ -121,10 +130,5 @@ void Overlay::update_overlay(struct SC2Data* sc2_data) {
     std::shared_ptr<QtOverlay::Overlay> overlay_radar = *overlay2_;
 
     update_overlay_data(overlay_radar, sc2_data);
-
-    if (!overlay_radar)
-        return;
-
-    emit overlay_radar->dataChanged();
 }
 }
