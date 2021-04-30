@@ -382,7 +382,9 @@ x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask)
         if (d3d9_base_address && d3d9_base_size) {
             debug_print(LEVEL_TRACE, "Accessing pointer chain to find EndScene\n");
             // Alternative is to store pointer by using the vtable entry
-            fn_EndScene = FindPattern(d3d9_base_address, d3d9_base_size, fn_EndScene_pattern, fn_EndScene_mask);
+            fn_EndScene = FindPattern(d3d9_base_address, d3d9_base_size, fn_EndScene_pattern_win10_20h2, fn_EndScene_mask_win10_20h2);
+            if (!fn_EndScene)
+                fn_EndScene = FindPattern(d3d9_base_address, d3d9_base_size, fn_EndScene_pattern_win10_19h1, fn_EndScene_mask_win10_19h1);
             vtable_EndScene = *(uintptr_t*)(sc2_base_address + EndScene_level0);
             vtable_EndScene = *(uintptr_t*)(vtable_EndScene + EndScene_level1);
             vtable_EndScene = *(uintptr_t*)(vtable_EndScene + EndScene_level2);
@@ -396,11 +398,13 @@ x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask)
     BOOL success = GLOBAL_ADDRESSES;
     if (HOOK_EndScene) {
         success = success && fn_EndScene && vtable_EndScene;
-        // Sanity check EndScene function pointer
-        if (!vtable_EndScene)
+        if (!fn_EndScene)
+            debug_print(LEVEL_ERROR, "Failed to find EndScene by pattern matching. Your system version might not be supported\n");
+        else if (!vtable_EndScene)
             debug_print(LEVEL_ERROR, "Failed to find vtable entry, got NULL-poninter\n");
         else if (*(char**)vtable_EndScene != fn_EndScene) {
-            debug_print(LEVEL_ERROR, "Sanity check EndScene failed: Expected: 0x%p, got 0x%p, maybe already hooked?\n", fn_EndScene, *(char**)vtable_EndScene);
+            // Sanity check EndScene function pointer failed
+            debug_print(LEVEL_ERROR, "Sanity check EndScene failed: Expected: 0x%p, got 0x%p, maybe already hooked, d3d9.dll of your system not supported or game offsets outdated\n", fn_EndScene, *(char**)vtable_EndScene);
             success = FALSE;
         }
         debug_print(LEVEL_DEBUG, "fn_EndScene: 0x%p, vtable_EndScene: 0x%p\n", fn_EndScene, vtable_EndScene);
@@ -441,6 +445,7 @@ x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask)
             }
         }
     }
+    g_sc2data.startup_done = !!success;
     return success;
 }
 

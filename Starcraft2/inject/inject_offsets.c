@@ -195,10 +195,14 @@ const char* fn_access_location_by_unit_mask = "xxxx?xxxx?xxxxxxxxxxxxxxxxx";
 typedef int64_t(__fastcall* FN_ACCESS_LOCATION_BY_UNIT) (struct DT_Unit* unit_ptr, struct DT_VectorLocation* output);
 FN_ACCESS_LOCATION_BY_UNIT fn_access_location_by_unit = NULL;
 
-
-const char* fn_EndScene_pattern = "\x40\x57\x48\x83\xEC\x40\x48\xC7\x44\x24\x00\x00\x00\x00\x00\x48\x89"
-                                  "\x5C\x24\x00\x48\x8B\xF9\x48\x8B\xC1\x48\x8D\x51\x08";
-const char* fn_EndScene_mask = "xxxxxxxxxx?????xxxx?xxxxxxxxxx";
+const char* fn_EndScene_pattern_win10_20h2 = "\x40\x53\x48\x83\xEC\x40\x48\xC7\x44\x24\x00\x00\x00\x00\x00\x48\x8B"
+                                             "\xD9\x48\x8B\xC1\x4C\x8D\x41\x08\x48\xF7\xD8\x48\x1B\xD2\x49\x23\xD0"
+                                             "\x45\x33\xC0\x48\x8D\x4C\x24\x00\xE8\x00\x00\x00\x00\x90\x8B\x43\x4C"
+                                             "\x83\xE0\x02\x84\xC0\x0F\x85\x00\x00\x00\x00";
+const char* fn_EndScene_mask_win10_20h2 = "xxxxxxxxxx?????xxxxxxxxxxxxxxxxxxxxxxxxxx?x????xxxxxxxxxxx????";
+const char* fn_EndScene_pattern_win10_19h1 = "\x40\x57\x48\x83\xEC\x40\x48\xC7\x44\x24\x00\x00\x00\x00\x00\x48\x89"
+                                             "\x5C\x24\x00\x48\x8B\xF9\x48\x8B\xC1\x48\x8D\x51\x08";
+const char* fn_EndScene_mask_win10_19h1 = "xxxxxxxxxx?????xxxx?xxxxxxxxxx";
 // HRESULT
 typedef long (*FN_END_SCENE) (void* pDevice);
 FN_END_SCENE fn_EndScene = NULL;
@@ -207,7 +211,7 @@ const char* glob_fn_NtQueryInformationThread_pattern = "\x48\x8B\x0D\x00\x00\x00
 const char* glob_fn_NtQueryInformationThread_mask = "xxx????xxxx?xxx";
 // IDA pattern: 48 8B 0D ? ? ? ? 48 89 44 24 ? 48 85 C9
 
-// v5.0.6.83830
+// v5.0.7.84643
 const uint32_t EndScene_level0 = 0x43BDC28;
 const uint32_t EndScene_level1 = 0x28;
 const uint32_t EndScene_level2 = 0x0;
