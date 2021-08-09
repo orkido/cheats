@@ -5,8 +5,16 @@
 
 #include <stdint.h>
 
+enum Team {
+    Self = 0,
+    Ally = 1,
+    Enemy = 3,
+    Neutral = 2,
+};
+
 struct Player {
     uint64_t address;
+    uint32_t id;
 
     int32_t camera_yaw;
     int32_t camera_pitch;
@@ -18,13 +26,8 @@ struct Player {
     uint32_t resource1;
     uint32_t resource2;
     uint32_t supply;
-};
 
-enum Team {
-    Self = 0,
-    Ally = 1,
-    Enemy = 3,
-    Neutral = 2,
+    enum Team team;
 };
 
 struct Unit {

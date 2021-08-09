@@ -476,20 +476,29 @@ __declspec(dllexport) void work() {
     if (!update_data(FALSE) || !init_functions())
         return;
 
+    debug_print(LEVEL_TRACE, "glob_ingame\n");
+    g_sc2data.ingame = *(uint8_t*)(sc2_base_address + glob_ingame);
+    if (!g_sc2data.ingame) {
+        memset(&g_sc2data, 0, sizeof(g_sc2data));
+        return;
+    }
+
+    debug_print(LEVEL_TRACE, "fn_local_player_index()\n");
+    if (g_sc2data.overwrite_local_player_index == 0xFF)
+        g_sc2data.local_player_index = fn_local_player_index();
+    else
+        g_sc2data.local_player_index = g_sc2data.overwrite_local_player_index;
+
     debug_print(LEVEL_TRACE, "fn_player_global_list()\n");
     char* player_list = fn_player_global_list();
 
     for (uint32_t i = 0; i < 16; ++i) {
-        debug_print(LEVEL_TRACE, "glob_ingame\n");
-        g_sc2data.ingame = *(uint8_t*)(sc2_base_address + glob_ingame);
-        if (!g_sc2data.ingame)
-            break;
-
         debug_print(LEVEL_TRACE, "fn_player_get()\n");
         struct DT_Player* in_player = fn_player_get_wrapper(i, player_list);
         struct Player* out_player = &g_sc2data.players[i];
 
         out_player->address = in_player;
+        out_player->id = in_player->player_id;
 
         out_player->camera_pitch = fn_player_camera_pitch(i);
         out_player->camera_yaw = fn_player_camera_yaw(i);
@@ -498,12 +507,10 @@ __declspec(dllexport) void work() {
         out_player->vespene = fn_player_get_resources(in_player, 1);
         out_player->resource1 = fn_player_get_resources(in_player, 2);
         out_player->resource2 = fn_player_get_resources(in_player, 3);
+
+        enum Team team = fn_is_owner_ally_neutral_enemy(g_sc2data.local_player_index, i);
+        out_player->team = team;
     }
-    
-    if (g_sc2data.overwrite_local_player_index == 0xFF)
-        g_sc2data.local_player_index = fn_local_player_index();
-    else
-        g_sc2data.local_player_index = g_sc2data.overwrite_local_player_index;
 
     for (uint32_t i = 0; i < *(uint32_t*)(sc2_base_address + units_list_length) && i < sizeof(g_sc2data.units) / sizeof(g_sc2data.units[0]); ++i) {
         debug_print(LEVEL_TRACE, "fn_unit_get()\n");

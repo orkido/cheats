@@ -32,7 +32,7 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
         bool type_changed = false;
         bool pos_changed = false;
 
-        if (entity->current_health > 0) {
+        if (src_entity.health > 0) {
             if (src_entity.team == Team::Self) {
                 IF_UPDATE_SET_TRUE(entity->type, QtOverlay::entity_type::Player, type_changed);
             } else if (src_entity.team == Team::Ally) {
@@ -72,8 +72,17 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
             overlay->data.change_queue.push(QtOverlay::EntityChange(i, type_changed, pos_changed));
     }
 
-    // TODO: Following is only valid for radar overlay
-    // Update camera
+    overlay->data_mutex.unlock();
+
+    emit overlay->dataChanged();
+}
+
+void update_overlay_camera_radar(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC2Data* sc2_data) {
+    if (!overlay)
+        return;
+
+    overlay->data_mutex.lock();
+
     IF_UPDATE_SET_TRUE(overlay->data.camera_type, QtOverlay::CameraType::OrthographicProjection, overlay->data.camera_type_changed);
 
     auto playable_mapsize_x_min = sc2_data->playable_mapsize_x_min;
@@ -87,8 +96,6 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
     auto camera_position = QVector3D(playable_mapsize_x / 2.0f + playable_mapsize_x_min, playable_mapsize_y / 2.0f + playable_mapsize_y_min, 4000.0f);
     auto camera_rotation = QVector3D(0.0f, 0.0f, 0.0f);
     auto camera_fov = QtOverlay::overlay_config.overlay_config_fov;
-    // auto camera_up_vector = QVector3D(0.0f, 0.0f, vector_length);
-    // auto camera_view_direction = QVector3D(0.0f, vector_length, 0.0f);
     float camera_bottom = -(playable_mapsize_y / 2.0f);
     float camera_top = playable_mapsize_y / 2.0f;
     float camera_right = playable_mapsize_x / 2.0f;
@@ -97,8 +104,6 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
     IF_UPDATE_SET_TRUE(overlay->data.camera_position, camera_position, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_rotation, camera_rotation, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_fov, camera_fov, overlay->data.camera_changed);
-    // IF_UPDATE_SET_TRUE(overlay->data.camera_up_vector, camera_up_vector, overlay->data.camera_changed);
-    // IF_UPDATE_SET_TRUE(overlay->data.camera_view_direction, camera_view_direction, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_bottom, camera_bottom, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_top, camera_top, overlay->data.camera_changed);
     IF_UPDATE_SET_TRUE(overlay->data.camera_right, camera_right, overlay->data.camera_changed);
@@ -109,10 +114,37 @@ void update_overlay_data(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC
     wSize.scale(355, 346, Qt::KeepAspectRatio);
     // Center minimap over real minimap
     QRect rect(QPoint(), wSize);
-    // overlay_radar->screen()->size().width()
     rect.moveCenter(QPoint(38 + (355 / 2), overlay->screen_size().height() - (18 + (346 / 2))));
 
     IF_UPDATE_SET_TRUE(overlay->data.window_rectangle, rect, overlay->data.window_changed);
+
+    overlay->data_mutex.unlock();
+
+    emit overlay->dataChanged();
+}
+
+void update_overlay_camera_third_person(std::shared_ptr<QtOverlay::Overlay>& overlay, struct SC2Data* sc2_data) {
+    if (!overlay)
+        return;
+
+    overlay->data_mutex.lock();
+
+    QSize wSize = overlay->screen_size();
+    QRect rect(QPoint(), wSize);
+    IF_UPDATE_SET_TRUE(overlay->data.window_rectangle, rect, overlay->data.window_changed);
+
+    std::string text = "| Name | Minerals | Gas | Supply |\n| --- | --- | --- | --- |\n";
+    for (auto& player : sc2_data->players) {
+        if ((strlen(player.name) || player.minerals || player.vespene || player.supply) && &player != &sc2_data->players[sc2_data->local_player_index]) {
+            char buf[256];
+            sprintf_s(buf, sizeof(buf), "| %s | %u | %u | %u |\n", player.name, player.minerals, player.vespene, player.supply);
+            text += std::string(buf);
+        }
+    }
+    if (!sc2_data->ingame)
+        text = "";
+
+    IF_UPDATE_SET_TRUE(overlay->data.text_field, text, overlay->data.text_field_changed);
 
     overlay->data_mutex.unlock();
 
@@ -130,5 +162,9 @@ void Overlay::update_overlay(struct SC2Data* sc2_data) {
     std::shared_ptr<QtOverlay::Overlay> overlay_radar = *overlay2_;
 
     update_overlay_data(overlay_radar, sc2_data);
+    // update_overlay_data(overlay_third_person, sc2_data);
+
+    update_overlay_camera_radar(overlay_radar, sc2_data);
+    update_overlay_camera_third_person(overlay_third_person, sc2_data);
 }
 }

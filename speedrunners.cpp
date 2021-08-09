@@ -98,7 +98,7 @@ void SpeedRunners::handle_bt_starcraft2() {
     overlay_starcraft2_two.reset();
     if (hack_starcraft2(&overlay_starcraft2_one, &overlay_starcraft2_two)) {
         if (config_display_overlay) {
-            // overlay_starcraft2_one.reset(new QtOverlay::Overlay());
+            overlay_starcraft2_one.reset(new QtOverlay::Overlay());
             overlay_starcraft2_two.reset(new QtOverlay::Overlay());
         }
     }
