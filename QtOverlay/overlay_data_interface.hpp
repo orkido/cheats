@@ -93,6 +93,9 @@ public:
 
     bool window_changed;
     QRect window_rectangle;
+
+    std::string text_field;
+    bool text_field_changed = false;
 };
 
 struct OverlayConfig {

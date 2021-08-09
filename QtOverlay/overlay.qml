@@ -24,6 +24,16 @@ Window {
         }
     }
 
+    Text {
+        id: textField
+        text: ""
+        textFormat: Text.MarkdownText
+        font.pointSize: 16
+        color: "white"
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+    }
+
     Node {
         id: rootScene
         property var instances: []
@@ -105,5 +115,14 @@ Window {
         node.position = position;
         node.eulerRotation = rotation;
         return true;
+    }
+
+    function update_text(textContent: string) : bool {
+        if (textContent == "") {
+            textField.visible = false;
+        } else {
+            textField.visible = true;
+        }
+        textField.text = textContent;
     }
 }

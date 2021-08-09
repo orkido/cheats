@@ -4,7 +4,7 @@
 #include <QtQml>
 
 namespace QtOverlay {
-	Overlay::Overlay() : QQmlApplicationEngine() {
+	Overlay::Overlay() : QQmlApplicationEngine(), window(nullptr) {
 		connect(this, SIGNAL(dataChanged()), SLOT(onDataChanged()));
 
 		//QSurfaceFormat::setDefaultFormat(QQuick3D::idealSurfaceFormat());
@@ -32,6 +32,7 @@ namespace QtOverlay {
 		DataContainer data_copy = this->data;
 
 		// Reset change records
+		this->data.text_field_changed = false;
 		this->data.camera_changed = false;
 		this->data.camera_type_changed = false;
 		this->data.window_changed = false;
@@ -126,6 +127,11 @@ namespace QtOverlay {
 			);
 		}
 
-
+		if (data_copy.text_field_changed) {
+			QMetaObject::invokeMethod(this->window, "update_text",
+				Q_RETURN_ARG(bool, dummy),
+				Q_ARG(QString, QString::fromStdString(data_copy.text_field))
+			);
+		}
 	}
 }
