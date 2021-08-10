@@ -68,9 +68,6 @@ void debug_print(int level, const char* format, ...) {
     char buf[2048];
     vsprintf(buf, format, args);
 
-    //FILE* pFile = fopen("C:\\Users\\florian\\Downloads\\EfiGuard\\SC2.log", "a");
-    //vfprintf(pFile, format, args);
-    //fclose(pFile);
     OutputDebugStringA(buf);
 
     va_end(args);
@@ -335,7 +332,9 @@ __declspec(dllexport) BOOL init_functions() {
 #define GLOBAL_ADDRESSES sc2_base_address && sc2_base_size && winapi_NtQueryInformationThread \
 && fn_call_wrapper \
 && fn_local_player_index && fn_player_get && fn_player_global_list \
-&& fn_player_camera_pitch && fn_player_camera_yaw && fn_player_camera_location && fn_player_get_camera_bounds && fn_player_get_resources \
+&& fn_player_get_name && fn_player_get_clantag && fn_player_get_color \
+&& fn_player_camera_pitch && fn_player_camera_yaw && fn_player_camera_location && fn_player_camera_distance && fn_player_get_camera_bounds && fn_player_get_resources \
+&& fn_player_supply_cap \
 && fn_map_x_y_min_max \
 && fn_unit_get \
 && fn_is_owner_ally_neutral_enemy && fn_read_health_shield_energy && fn_access_location_by_unit
@@ -357,17 +356,23 @@ __declspec(dllexport) BOOL init_functions() {
     winapi_NtQueryInformationThread = (t_NtQueryInformationThread)GetProcAddress(GetModuleHandle("ntdll.dll"), "NtQueryInformationThread");
 
 #define PATTERN_MATCH_SC2BASE(x) \
-x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask)
+x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask); \
+debug_print(LEVEL_DEBUG, #x " = 0x%p\n", x)
 
     PATTERN_MATCH_SC2BASE(fn_call_wrapper);
     PATTERN_MATCH_SC2BASE(fn_local_player_index);
     PATTERN_MATCH_SC2BASE(fn_player_get);
     PATTERN_MATCH_SC2BASE(fn_player_global_list);
+    PATTERN_MATCH_SC2BASE(fn_player_get_name);
+    PATTERN_MATCH_SC2BASE(fn_player_get_clantag);
+    PATTERN_MATCH_SC2BASE(fn_player_get_color);
     PATTERN_MATCH_SC2BASE(fn_player_camera_pitch);
     PATTERN_MATCH_SC2BASE(fn_player_camera_yaw);
     PATTERN_MATCH_SC2BASE(fn_player_camera_location);
+    PATTERN_MATCH_SC2BASE(fn_player_camera_distance);
     PATTERN_MATCH_SC2BASE(fn_player_get_camera_bounds);
     PATTERN_MATCH_SC2BASE(fn_player_get_resources);
+    PATTERN_MATCH_SC2BASE(fn_player_supply_cap);
     PATTERN_MATCH_SC2BASE(fn_map_x_y_min_max);
     PATTERN_MATCH_SC2BASE(fn_unit_get);
     PATTERN_MATCH_SC2BASE(fn_is_owner_ally_neutral_enemy);
@@ -409,16 +414,8 @@ x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask)
         }
         debug_print(LEVEL_DEBUG, "fn_EndScene: 0x%p, vtable_EndScene: 0x%p\n", fn_EndScene, vtable_EndScene);
     }
-
-    int log_level;
-    if (success)
-        log_level = LEVEL_DEBUG;
-    else {
-        log_level = LEVEL_ERROR;
+    if (!success)
         debug_print(LEVEL_ERROR, "init_functions(): Failed to collect offsets and data\n");
-    }
-    debug_print(log_level, "sc2_base_address = %p, sc2_base_size = %lu, winapi_NtQueryInformationThread = %p, fn_player_get = %p, fn_player_global_list = %p\n", sc2_base_address, sc2_base_size, winapi_NtQueryInformationThread, fn_player_get, fn_player_global_list);
-    debug_print(log_level, "fn_unit_get = %p, fn_is_owner_ally_neutral_enemy = %p, fn_read_health_shield_energy = %p, fn_access_location_by_unit = %p\n", fn_unit_get, fn_is_owner_ally_neutral_enemy, fn_read_health_shield_energy, fn_access_location_by_unit);
 
     // Install hooks as the last step because those run instantly after installation
     if (success) {
@@ -450,18 +447,33 @@ x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask)
 }
 
 // Interval in ms
-#define UPDATE_INTERVAL 5
+#define UPDATE_INTERVAL 20
 BOOL update_data(BOOL update_finished) {
     debug_print(LEVEL_TRACE, "update_data(%d)\n", update_finished);
     static uint64_t last_read = 0;
 
     uint64_t cur_time = GetTickCount64();
-    if (cur_time - last_read > UPDATE_INTERVAL) {
-        if (update_finished)
-            last_read = cur_time;
-        return TRUE;
+    if (update_finished) {
+        last_read = cur_time;
+        return FALSE;
     }
-    return FALSE;
+
+    return cur_time - last_read > UPDATE_INTERVAL;
+}
+
+// Interval in ms
+#define UPDATE_INTERVAL_SLOW 1000
+BOOL update_data_slow(BOOL update_finished) {
+    debug_print(LEVEL_TRACE, "update_data_slow(%d)\n", update_finished);
+    static uint64_t last_read = 0;
+
+    uint64_t cur_time = GetTickCount64();
+    if (update_finished) {
+        last_read = cur_time;
+        return FALSE;
+    }
+
+    return cur_time - last_read > UPDATE_INTERVAL_SLOW;
 }
 
 uint64_t call_in_main_section_context(uint64_t* func, uint64_t arg1, uint64_t arg2, uint64_t arg3);
@@ -476,18 +488,24 @@ __declspec(dllexport) void work() {
     if (!update_data(FALSE) || !init_functions())
         return;
 
+    BOOL update_slow = update_data_slow(FALSE);
+
     debug_print(LEVEL_TRACE, "glob_ingame\n");
     g_sc2data.ingame = *(uint8_t*)(sc2_base_address + glob_ingame);
     if (!g_sc2data.ingame) {
         memset(&g_sc2data, 0, sizeof(g_sc2data));
+        g_sc2data.startup_done = 1;
+        g_sc2data.overwrite_local_player_index = 0xFF;
         return;
     }
 
-    debug_print(LEVEL_TRACE, "fn_local_player_index()\n");
-    if (g_sc2data.overwrite_local_player_index == 0xFF)
-        g_sc2data.local_player_index = fn_local_player_index();
-    else
-        g_sc2data.local_player_index = g_sc2data.overwrite_local_player_index;
+    if (update_slow) {
+        debug_print(LEVEL_TRACE, "fn_local_player_index()\n");
+        if (g_sc2data.overwrite_local_player_index == 0xFF)
+            g_sc2data.local_player_index = fn_local_player_index();
+        else
+            g_sc2data.local_player_index = g_sc2data.overwrite_local_player_index;
+    }
 
     debug_print(LEVEL_TRACE, "fn_player_global_list()\n");
     char* player_list = fn_player_global_list();
@@ -497,19 +515,40 @@ __declspec(dllexport) void work() {
         struct DT_Player* in_player = fn_player_get_wrapper(i, player_list);
         struct Player* out_player = &g_sc2data.players[i];
 
-        out_player->address = in_player;
-        out_player->id = in_player->player_id;
+        if (update_slow) {
+            // NOTE: return value +8 in name source
+            strncpy(out_player->name, fn_player_get_name(in_player) + 8, sizeof(out_player->name));
+            strncpy(out_player->clantag, fn_player_get_clantag(in_player) + 8, sizeof(out_player->clantag));
+            out_player->supply = 0;
+            fn_player_supply_cap(in_player, &out_player->supply_cap);
+            out_player->supply_cap >>= 12;
+            out_player->supply_cap_max = in_player->supply_max_cap >> 12;
+            debug_print(LEVEL_TRACE, "fn_player_get_color()\n");
+            fn_player_get_color(&out_player->color, i);
 
+            out_player->address = in_player;
+            out_player->id = in_player->player_id;
+
+            out_player->minerals = fn_player_get_resources(in_player, 0);
+            out_player->vespene = fn_player_get_resources(in_player, 1);
+            out_player->resource1 = fn_player_get_resources(in_player, 2);
+            out_player->resource2 = fn_player_get_resources(in_player, 3);
+
+            enum Team team = fn_is_owner_ally_neutral_enemy(g_sc2data.local_player_index, i);
+            out_player->team = team;
+
+
+            int race = in_player->race_struct ? in_player->race_struct->race_id : RaceUnknown;
+            if (race < RaceUnknown || race > RaceZerg)
+                race = RaceUnknown;
+            out_player->race = race;
+        }
+
+        debug_print(LEVEL_TRACE, "fn_player_camera_*()\n");
         out_player->camera_pitch = fn_player_camera_pitch(i);
         out_player->camera_yaw = fn_player_camera_yaw(i);
-
-        out_player->minerals = fn_player_get_resources(in_player, 0);
-        out_player->vespene = fn_player_get_resources(in_player, 1);
-        out_player->resource1 = fn_player_get_resources(in_player, 2);
-        out_player->resource2 = fn_player_get_resources(in_player, 3);
-
-        enum Team team = fn_is_owner_ally_neutral_enemy(g_sc2data.local_player_index, i);
-        out_player->team = team;
+        out_player->camera_distance = fn_player_camera_distance(i);
+        out_player->camera_location = 0; // TODO
     }
 
     for (uint32_t i = 0; i < *(uint32_t*)(sc2_base_address + units_list_length) && i < sizeof(g_sc2data.units) / sizeof(g_sc2data.units[0]); ++i) {
@@ -517,21 +556,40 @@ __declspec(dllexport) void work() {
         struct DT_Unit* in_unit = fn_unit_get(sc2_base_address + units_list, i);
         struct Unit* out_unit = &g_sc2data.units[i];
 
-        out_unit->address = in_unit;
+        if (update_slow) {
+            out_unit->address = in_unit;
 
-        debug_print(LEVEL_TRACE, "in_unit->index[_unknown]\n");
-        // i == out_unix->index >> 18
-        // out_unix->index & 0x3FFF == 1
-        out_unit->index = in_unit->index;
-        out_unit->index_unknown = in_unit->index_unknown;
+            debug_print(LEVEL_TRACE, "in_unit->index[_unknown]\n");
+            // i == out_unix->index >> 18
+            // out_unix->index & 0x3FFF == 1
+            out_unit->index = in_unit->index;
+            out_unit->index_unknown = in_unit->index_unknown;
 
-        debug_print(LEVEL_TRACE, "fn_read_health_shield_energy()\n");
-        fn_read_health_shield_energy(in_unit, &out_unit->health, 0);
-        fn_read_health_shield_energy(in_unit, &out_unit->shields, 1);
-        fn_read_health_shield_energy(in_unit, &out_unit->energy, 2);
-        out_unit->health >>= 12;
-        out_unit->shields >>= 12;
-        out_unit->energy >>= 12;
+            if (in_unit->unit_type_ref && in_unit->unit_type_ref->unit_type) {
+                strncpy(out_unit->unit_name, in_unit->unit_type_ref->unit_type->unit_name, sizeof(out_unit->unit_name));
+                out_unit->unit_type_id = in_unit->unit_type_ref->unit_type->unit_type_id;
+            }
+
+            debug_print(LEVEL_TRACE, "fn_read_health_shield_energy()\n");
+            fn_read_health_shield_energy(in_unit, &out_unit->health, 0);
+            fn_read_health_shield_energy(in_unit, &out_unit->shields, 1);
+            fn_read_health_shield_energy(in_unit, &out_unit->energy, 2);
+            out_unit->health >>= 12;
+            out_unit->shields >>= 12;
+            out_unit->energy >>= 12;
+
+            enum Team team = fn_is_owner_ally_neutral_enemy(g_sc2data.local_player_index, in_unit->owner_player_id);
+            out_unit->team = team;
+
+            out_unit->owner_player_id = in_unit->owner_player_id;
+            out_unit->unknown_player_id = in_unit->unknown_player_id;
+            out_unit->control_type = in_unit->control_type;
+            out_unit->amount_units_attacking_self = in_unit->amount_units_attacking_self;
+            out_unit->interesting_value = in_unit->interesting_value_in_setOwner;
+            out_unit->interesting_value2 = in_unit->interesting_value2_in_setOwner;
+            out_unit->player_id = in_unit->player_id;
+            out_unit->player_visible_num = in_unit->player_visible_index;
+        }
 
         debug_print(LEVEL_TRACE, "fn_access_location_by_unit()\n");
         struct DT_VectorLocation output;
@@ -543,32 +601,25 @@ __declspec(dllexport) void work() {
         out_unit->position_unknown2 = output.unknown2;
         out_unit->position_unknown3 = output.unknown3;
         out_unit->position_unknown4 = output.unknown4;
-
-        enum Team team = fn_is_owner_ally_neutral_enemy(g_sc2data.local_player_index, in_unit->owner_player_id);
-        out_unit->team = team;
-
-        out_unit->owner_player_id = in_unit->owner_player_id;
-        out_unit->unknown_player_id = in_unit->unknown_player_id;
-        out_unit->control_type = in_unit->control_type;
-        out_unit->amount_units_attacking_self = in_unit->amount_units_attacking_self;
-        out_unit->interesting_value = in_unit->interesting_value_in_setOwner;
-        out_unit->interesting_value2 = in_unit->interesting_value2_in_setOwner;
-        out_unit->player_id = in_unit->player_id;
-        out_unit->player_visible_num = in_unit->player_visible_num;
     }
 
     debug_print(LEVEL_TRACE, "general details\n");
     g_sc2data.units_length = *(uint32_t*)(sc2_base_address + units_list_length);
 
-    struct DT_MapSize* camera_bounds = fn_player_get_camera_bounds(16);
-    g_sc2data.camera_bounds_address = camera_bounds;
-    g_sc2data.playable_mapsize_x_max = camera_bounds->x_max; // - 7; // On both sides +7
-    g_sc2data.playable_mapsize_x_min = camera_bounds->x_min; // - 7; // On both sides +7
-    g_sc2data.playable_mapsize_y_max = camera_bounds->y_max; // - 3; // On both sides +3
-    g_sc2data.playable_mapsize_y_min = camera_bounds->y_min; // - 3; // On both sides +3
-    struct DT_MapSize* map_bounds = fn_map_x_y_min_max();
-    g_sc2data.total_mapsize_x = map_bounds->x_max - map_bounds->x_min; // min. x is always 0
-    g_sc2data.total_mapsize_y = map_bounds->y_max - map_bounds->y_min; // min. y is always 0
+    if (update_slow) {
+        struct DT_MapSize* camera_bounds = fn_player_get_camera_bounds(16);
+        g_sc2data.camera_bounds_address = camera_bounds;
+        g_sc2data.playable_mapsize_x_max = camera_bounds->x_max; // - 7; // On both sides +7
+        g_sc2data.playable_mapsize_x_min = camera_bounds->x_min; // - 7; // On both sides +7
+        g_sc2data.playable_mapsize_y_max = camera_bounds->y_max; // - 3; // On both sides +3
+        g_sc2data.playable_mapsize_y_min = camera_bounds->y_min; // - 3; // On both sides +3
+        struct DT_MapSize* map_bounds = fn_map_x_y_min_max();
+        g_sc2data.total_mapsize_x = map_bounds->x_max - map_bounds->x_min; // min. x is always 0
+        g_sc2data.total_mapsize_y = map_bounds->y_max - map_bounds->y_min; // min. y is always 0
+    }
+
+    if (update_slow)
+        update_data_slow(TRUE);
 
     update_data(TRUE);
 }

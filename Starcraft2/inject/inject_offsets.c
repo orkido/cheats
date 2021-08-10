@@ -2,11 +2,48 @@
 
 // Force unaligned struct layout because struct exactly matches the game memory offsets
 #pragma pack(push, 1)
-// All except those marked with "plain" are encoded
+
+struct DT_Race
+{
+    int pad0;
+    int pad4;
+    int pad8;
+    int padC;
+    int pad10;
+    int pad14;
+    int pad18;
+    int pad1C;
+    int pad20;
+    int pad24;
+    int pad28;
+    int pad2C;
+    int pad30;
+    int pad34;
+    int pad38;
+    int pad3C;
+    int race_id;
+    int pad44;
+};
+
+struct DT_UnitType
+{
+    char pad00[8];
+    unsigned __int32 unit_type_id;
+    char pad0C[20];
+    char unit_name[32];
+    char pad40[12];
+};
+
+struct DT_UnitTypeRef
+{
+    char pad00[16];
+    struct DT_UnitType* unit_type;
+};
+
 struct DT_Unit
 {
     unsigned __int32 index;
-    char pad_0x0000[20];
+    char len[20];
     unsigned __int32 index_unknown;
     __int64 m_ChangesWhenMoving;
     char pad_0x0024[28];
@@ -24,8 +61,10 @@ struct DT_Unit
     char gapD8[88];
     unsigned __int32 player_id;
     char gap134[4];
-    __int64 player_visible_num;
-    char pad_0x0140[88];
+    __int64 player_visible_index;
+    char pad_0x0140[72];
+    struct DT_UnitTypeRef* unit_type_ref;
+    __int64 pad190;
     __int32 m_MissingHealth;
     __int32 m_Shields;
     __int32 m_Energy;
@@ -36,28 +75,39 @@ struct DT_Unit
 
 struct DT_Player
 {
-    unsigned __int32 index;
+    unsigned __int32 zero;
     char pad_0x0000[20];
     unsigned __int32 index_unknown;
-    __int64 camera_target;
+    __int32 camera_target1;
+    __int32 camera_target2;
     char pad_0x0024[28];
     unsigned __int8 control_player_id;
     char pad_0x0041[19];
     unsigned __int8 interesting_value;
     unsigned __int8 interesting_value2;
     char pad_0x0056[122];
-    __int64 m_ChangesWhenMoving2;
+    __int64 pad_D0;
     char gapD8[88];
-    unsigned __int32 player_id;
+    unsigned __int32 pad130;
     char gap134[4];
     __int64 player_visible_num;
     char pad_0x0140[88];
-    __int32 m_MissingHealth;
-    __int32 m_Shields;
-    __int32 m_Energy;
-    __int32 m_MaxHealth;
-    __int32 m_MaxShield;
-    char pad_0x01AC[192];
+    __int32 pad_198;
+    __int32 pad_19C;
+    __int32 pad_1A0;
+    __int32 pad_1A4;
+    __int32 pad_1A8;
+    char pad_0x01AC;
+    char gap1AD[315];
+    int supply_cap_crypt1;
+    int supply_cap_crypt2;
+    char gap2F0[1470];
+    char player_id;
+    char gap8AF[81];
+    struct DT_Race* race_struct;
+    char gap908[364];
+    int supply_max_cap;
+    char gap8fAF[1447];
 };
 
 struct DT_MapSize {
@@ -70,7 +120,10 @@ struct DT_MapSize {
 #pragma pack(pop)
 
 /*
-// All except those marked with "plain" are encoded
+// DT_Race:
+race_id // plain; 2 Terran, 3 Zerg
+
+// DT_Unit: All except those marked with "plain" are encoded
 index // plain
 index_unknown // plain
 unknown_player_id // plain
@@ -81,6 +134,12 @@ unknown_player_id // plain; always 0x10
 player_id // plain; all 8 bytes do some visibility stuff; // = 1 << playerId; maybe only in DT_Player != 0
 player_visible_num // plain; first byte is the owner; all 8 bytes do some visibility stuff
 m_Energy // plain
+
+
+// DT_Player:
+player_id // plain; matches the index
+supply_max_cap // plain; multiplied by 4096
+
 */
 
 struct DT_VectorLocation {
@@ -120,6 +179,28 @@ const char* fn_player_global_list_mask = "xx????xx????x????xxxx????xx????xxxxxxx
 typedef char* (__fastcall* FN_PLAYER_GLOBAL_LIST) ();
 FN_PLAYER_GLOBAL_LIST fn_player_global_list = NULL;
 
+// This function returns a pointer to an unknown 8 bytes value. After those 8 bytes the player name follows in C-string format
+const char* fn_player_get_name_pattern = "\x0F\xB6\x81\x00\x00\x00\x00\x48\x8D\x0D\x92\x00\x00\x00\x48\x6B"
+                                         "\xC0\x58\x48\x03\xC1\xC3";
+const char* fn_player_get_name_mask = "xxx????xxxx???xxxxxxxx";
+typedef char* (__fastcall* FN_PLAYER_GET_NAME) (struct DT_Player* player);
+FN_PLAYER_GET_NAME fn_player_get_name = NULL;
+
+// This function returns a pointer to an unknown 8 bytes value. After those 8 bytes the player clan tag follows in C-string format
+const char* fn_player_get_clantag_pattern = "\x0F\xB6\x81\x00\x00\x00\x00\x48\x8D\x0C\x80\x48\x8D\x05\x2E\x00"
+                                            "\x00\x00\x48\x8D\x04\xC8\xC3";
+const char* fn_player_get_clantag_mask = "xxx????xxxxxxxx???xxxxx";
+typedef char* (__fastcall* FN_PLAYER_GET_CLANTAG) (struct DT_Player* player);
+FN_PLAYER_GET_CLANTAG fn_player_get_clantag = NULL;
+
+// The return color seems to be a ARGB value
+const char* fn_player_get_color_pattern = "\x48\x89\x5C\x24\x00\x57\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\xF9"
+                                          "\x0F\xB6\xDA\x48\x8D\x4C\x24\x00\xE8\x00\x00\x00\x00\xE8\x00\x00"
+                                          "\x00\x00\x85\xC0";
+const char* fn_player_get_color_mask = "xxxx?xxxx????xxxxxxxxxx?x????x????xx";
+typedef uint32_t* (__fastcall* FN_PLAYER_GET_COLOR) (uint32_t* ARGB_color_buffer_output, uint8_t player_index);
+FN_PLAYER_GET_COLOR fn_player_get_color = NULL;
+
 const char* fn_player_camera_pitch_pattern = "\x48\x89\x5C\x24\x00\x55\x48\x8D\xAC\x24\x00\x00\x00\x00\x48\x81"
                                              "\xEC\x00\x00\x00\x00\x8B\xD9\x83\xF9\x0F\x0F\x87\x00\x00\x00\x00"
                                              "\x80\x3D\x00\x00\x00\x00\x00\x74\x24";
@@ -134,12 +215,18 @@ const char* fn_player_camera_yaw_mask = "xxxx?xxxxx????xxx????xxxxxxx????xx?????
 typedef int32_t(__fastcall* FN_PLAYER_CAMERA_YAW) (uint32_t player_index);
 FN_PLAYER_CAMERA_YAW fn_player_camera_yaw = NULL;
 
-const char* fn_player_camera_location_pattern = "\x48\x89\x5C\x24\x00\x55\x48\x8D\xAC\x24\x00\x00\x00\x00\x48\x81"
-                                                "\xEC\x00\x00\x00\x00\x8B\xD9\x83\xF9\x0F\x0F\x87\x00\x00\x00\x00"
-                                                "\x80\x3D\x00\x00\x00\x00\x00\x74\x33";
-const char* fn_player_camera_location_mask = "xxxx?xxxxx????xxx????xxxxxxx????xx?????xx";
+const char* fn_player_camera_location_pattern = "\x40\x55\x53\x57\x48\x8D\xAC\x24\x00\x00\x00\x00\x48\x81\xEC\x00"
+                                                "\x00\x00\x00\x8B\xD9";
+const char* fn_player_camera_location_mask = "xxxxxxxx????xxx????xx";
 typedef uint64_t(__fastcall* FN_PLAYER_CAMERA_LOCATION) (uint32_t player_index);
 FN_PLAYER_CAMERA_LOCATION fn_player_camera_location = NULL;
+
+const char* fn_player_camera_distance_pattern = "\x48\x89\x5C\x24\x00\x55\x48\x8D\xAC\x24\x00\x00\x00\x00\x48\x81"
+                                                "\xEC\x00\x00\x00\x00\x8B\xD9\x83\xF9\x0F\x0F\x87\x00\x00\x00\x00"
+                                                "\x80\x3D\x00\x00\x00\x00\x00\x74\x23";
+const char* fn_player_camera_distance_mask = "xxxx?xxxxx????xxx????xxxxxxx????xx?????xx";
+typedef uint32_t(__fastcall* FN_PLAYER_CAMERA_DISTANCE) (uint32_t player_index);
+FN_PLAYER_CAMERA_DISTANCE fn_player_camera_distance = NULL;
 
 const char* fn_player_get_camera_bounds_pattern = "\x8B\x05\x00\x00\x00\x00\x2B\x05\x00\x00\x00\x00\x2D\x00\x00\x00\x00\x89\x44\x24\x10\x8B\x05\x00\x00\x00\x00\x33\x05\x00\x00\x00\x00\x89\x44\x24\x14\x0F\xB6\xC1\x48\x83\xC0\x1F\x48\xC1\xE0\x04\x48\x03\x44\x24\x00\xC3";
 const char* fn_player_get_camera_bounds_mask = "xx????xx????x????xxxxxx????xx????xxxxxxxxxxxxxxxxxxx?x";
@@ -151,6 +238,13 @@ const char* fn_player_get_resources_pattern = "\x8D\x42\x68\x4C\x8D\x04\xC1\x8B\
 const char* fn_player_get_resources_mask = "xxxxxxxxx????";
 typedef int32_t(__fastcall* FN_PLAYER_GET_RESOURCES) (struct DT_Player* player, uint64_t resource_selection);
 FN_PLAYER_GET_RESOURCES fn_player_get_resources = NULL;
+
+// Multiple functions match this pattern, use the first match
+const char* fn_player_supply_cap_pattern = "\x8B\x05\x00\x00\x00\x00\x4C\x8D\x81\x00\x00\x00\x00\x4C\x8D\x1D"
+                                           "\x00\x00\x00\x00";
+const char* fn_player_supply_cap_mask = "xx????xxx????xxx????";
+typedef uint32_t* (__fastcall* FN_PLAYER_SUPPLY_CAP) (struct DT_Player* player, uint32_t* output);
+FN_PLAYER_SUPPLY_CAP fn_player_supply_cap = NULL;
 
 const char* fn_map_x_y_min_max_pattern = "\x8B\x05\x00\x00\x00\x00\x2B\x05\x00\x00\x00\x00\x2D\x00\x00\x00\x00\x89\x44\x24\x08\x8B\x05\x00\x00\x00\x00\x33\x05\x00\x00\x00\x00\x89\x44\x24\x0C\x48\x8B\x44\x24\x00\x48\x05\xD0\x00\x00\x00\xC3";
 const char* fn_map_x_y_min_max_mask = "xx????xx????x????xxxxxx????xx????xxxxxxxx?xxxxxxx";

@@ -12,6 +12,13 @@ enum Team {
     Neutral = 2,
 };
 
+enum Race {
+    RaceUnknown = 1,
+    RaceTerran = 2,
+    RaceZerg = 3,
+    RaceProtoss = 4,
+};
+
 struct Player {
     uint64_t address;
     uint32_t id;
@@ -19,21 +26,32 @@ struct Player {
     int32_t camera_yaw;
     int32_t camera_pitch;
     uint64_t camera_location;
+    uint32_t camera_distance;
 
     char name[128];
+    char clantag[128];
     uint32_t minerals;
     uint32_t vespene;
     uint32_t resource1;
     uint32_t resource2;
     uint32_t supply;
+    uint32_t supply_cap;
+    uint32_t supply_cap_max;
+    uint32_t color;
 
     enum Team team;
+
+    enum Race race;
 };
 
 struct Unit {
     uint64_t address;
     uint32_t index;
     uint32_t index_unknown;
+
+    uint32_t unit_type_id;
+    char unit_name[32];
+
     float position_x;
     float position_y;
     float position_z;
