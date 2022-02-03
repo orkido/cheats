@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.18)
 
 project(speedrunners LANGUAGES CXX C ASM_MASM)
 
@@ -23,60 +23,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         # 64 bits
-        set(QT_PATHS
-            "C:/Qt/6.1.0/msvc2019_64"
+        set(CMAKE_PREFIX_PATH
+            "C:/Qt/6.2.3/msvc2019_64"
             #"C:/Qt/6.0.3/msvc2019_64"
             "C:/Qt/5.15.2/msvc2019_64"
             #"C:/Qt/5.15.1/msvc2019_64"
         )
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
         # 32 bits
-        set(QT_PATHS
+        set(CMAKE_PREFIX_PATH
             "C:/Qt/5.15.2/msvc2019"
-            "C:/Qt/5.15.1/msvc2019"
         )
     endif()
 endif()
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED HINTS ${QT_PATHS})
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS CoreTools REQUIRED HINTS ${QT_PATHS})
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS GuiTools Gui REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS WidgetsTools Widgets REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS QmlTools REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Qml REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS QmlModels REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS ShaderToolsTools REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS ShaderTools REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick3DRuntimeRender REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick3DTools REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick3D REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS QuickControls2 REQUIRED)
-#find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DQuick REQUIRED)
-#find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DQuickExtras REQUIRED)
-
-# Automatic dependency resolve does not work. We have to import Qt3D dependencies manually for now
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Concurrent REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Network REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS OpenGL REQUIRED)
-
-if (${USE_QT_CONAN})
-    # cmake, ninja, conan, perl, vulkan in PATH (https://vulkan.lunarg.com/sdk/home)
-    # "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-    # conan.exe install qt3d/6.0.3@qt/final --build=missing --profile=C:/Qt/Tools/Conan/profiles/qt-6.0.3-msvc2019_64 -s build_type=Debug -g cmake_paths -g=cmake -g deploy
-    if (${QT_VERSION_MAJOR} MATCHES "6")
-        IF(CMAKE_BUILD_TYPE MATCHES Debug)
-            include(${CMAKE_CURRENT_SOURCE_DIR}/Qt3D_x64_Debug/conan_paths.cmake)
-        else()
-            include(${CMAKE_CURRENT_SOURCE_DIR}/Qt3D_x64_Release/conan_paths.cmake)
-        ENDIF()
-    endif()
-    find_package(Qt${QT_VERSION_MAJOR}3DCore REQUIRED)
-    find_package(Qt${QT_VERSION_MAJOR}3DExtras REQUIRED)
-    find_package(Qt${QT_VERSION_MAJOR}3DRender REQUIRED)
-else()
-    #find_package(Qt${QT_VERSION_MAJOR} COMPONENTS 3DCore 3DExtras 3DRender REQUIRED)
-endif()
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Widgets Qml QmlModels Quick ShaderTools Quick3D QuickControls2 REQUIRED)
+#find_package(Qt6 COMPONENTS Core Gui Widgets Qml QmlModels Quick ShaderTools Quick3D QuickControls2 REQUIRED)
 
 set(
     "speedrunners_src"
