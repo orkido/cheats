@@ -132,8 +132,8 @@ __declspec(dllexport) BOOL init_functions() {
 && fn_call_wrapper \
 && fn_local_player_index && fn_player_get && fn_player_global_list \
 && fn_player_get_name && fn_player_get_clantag && fn_player_get_color \
-&& fn_player_camera_pitch && fn_player_camera_yaw && fn_player_camera_location && fn_player_camera_distance && fn_player_get_camera_bounds && fn_player_get_resources \
-&& fn_player_supply_cap \
+&& fn_player_camera_pitch && fn_player_camera_yaw && fn_player_camera_location && fn_player_camera_get_distance && fn_player_get_camera_bounds && fn_player_get_resources \
+&& fn_player_supply_cap_decrypt \
 && fn_map_x_y_min_max \
 && fn_unit_get \
 && fn_is_owner_ally_neutral_enemy && fn_read_health_shield_energy && fn_access_location_by_unit
@@ -157,26 +157,27 @@ __declspec(dllexport) BOOL init_functions() {
 #define PATTERN_MATCH_SC2BASE(x) \
 x = FindPattern(sc2_base_address, sc2_base_size, x##_pattern, x##_mask); \
 debug_print(LEVEL_DEBUG, #x " = 0x%p\n", x)
+#define STATIC_OFFSET_SC2BASE(x) x = sc2_base_address + x##_offset;
 
     PATTERN_MATCH_SC2BASE(fn_call_wrapper);
-    PATTERN_MATCH_SC2BASE(fn_local_player_index);
-    PATTERN_MATCH_SC2BASE(fn_player_get);
-    PATTERN_MATCH_SC2BASE(fn_player_global_list);
-    PATTERN_MATCH_SC2BASE(fn_player_get_name);
-    PATTERN_MATCH_SC2BASE(fn_player_get_clantag);
-    PATTERN_MATCH_SC2BASE(fn_player_get_color);
-    PATTERN_MATCH_SC2BASE(fn_player_camera_pitch);
-    PATTERN_MATCH_SC2BASE(fn_player_camera_yaw);
-    PATTERN_MATCH_SC2BASE(fn_player_camera_location);
-    PATTERN_MATCH_SC2BASE(fn_player_camera_distance);
-    PATTERN_MATCH_SC2BASE(fn_player_get_camera_bounds);
-    PATTERN_MATCH_SC2BASE(fn_player_get_resources);
-    PATTERN_MATCH_SC2BASE(fn_player_supply_cap);
-    PATTERN_MATCH_SC2BASE(fn_map_x_y_min_max);
-    PATTERN_MATCH_SC2BASE(fn_unit_get);
-    PATTERN_MATCH_SC2BASE(fn_is_owner_ally_neutral_enemy);
-    PATTERN_MATCH_SC2BASE(fn_read_health_shield_energy);
-    PATTERN_MATCH_SC2BASE(fn_access_location_by_unit);
+    STATIC_OFFSET_SC2BASE(fn_local_player_index);
+    STATIC_OFFSET_SC2BASE(fn_player_get);
+    STATIC_OFFSET_SC2BASE(fn_player_global_list);
+    STATIC_OFFSET_SC2BASE(fn_player_get_name);
+    STATIC_OFFSET_SC2BASE(fn_player_get_clantag);
+    STATIC_OFFSET_SC2BASE(fn_player_get_color);
+    STATIC_OFFSET_SC2BASE(fn_player_camera_pitch);
+    STATIC_OFFSET_SC2BASE(fn_player_camera_yaw);
+    STATIC_OFFSET_SC2BASE(fn_player_camera_location);
+    STATIC_OFFSET_SC2BASE(fn_player_camera_get_distance);
+    STATIC_OFFSET_SC2BASE(fn_player_get_camera_bounds);
+    STATIC_OFFSET_SC2BASE(fn_player_get_resources);
+    STATIC_OFFSET_SC2BASE(fn_player_supply_cap_decrypt);
+    STATIC_OFFSET_SC2BASE(fn_map_x_y_min_max);
+    STATIC_OFFSET_SC2BASE(fn_unit_get);
+    STATIC_OFFSET_SC2BASE(fn_is_owner_ally_neutral_enemy);
+    STATIC_OFFSET_SC2BASE(fn_read_health_shield_energy);
+    STATIC_OFFSET_SC2BASE(fn_access_location_by_unit);
 
     uintptr_t vtable_EndScene = NULL;
     if (HOOK_EndScene) {
@@ -319,7 +320,7 @@ __declspec(dllexport) void work() {
             strncpy(out_player->name, fn_player_get_name(in_player) + 8, sizeof(out_player->name));
             strncpy(out_player->clantag, fn_player_get_clantag(in_player) + 8, sizeof(out_player->clantag));
             out_player->supply = 0;
-            fn_player_supply_cap(in_player, &out_player->supply_cap);
+            fn_player_supply_cap_decrypt(in_player, &out_player->supply_cap);
             out_player->supply_cap >>= 12;
             out_player->supply_cap_max = in_player->supply_max_cap >> 12;
             debug_print(LEVEL_TRACE, "fn_player_get_color()\n");
@@ -346,7 +347,7 @@ __declspec(dllexport) void work() {
         debug_print(LEVEL_TRACE, "fn_player_camera_*()\n");
         out_player->camera_pitch = fn_player_camera_pitch(i);
         out_player->camera_yaw = fn_player_camera_yaw(i);
-        out_player->camera_distance = fn_player_camera_distance(i);
+        out_player->camera_distance = fn_player_camera_get_distance(i);
         out_player->camera_location = 0; // TODO
     }
 
