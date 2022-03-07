@@ -20,15 +20,12 @@ public:
 private:
     Ui::SpeedRunners *ui;
     std::shared_ptr<QtOverlay::Overlay> overlay_apex;
-    std::shared_ptr<QtOverlay::Overlay> overlay_starcraft2_one;
-    std::shared_ptr<QtOverlay::Overlay> overlay_starcraft2_two;
 
 private slots:
     void handle_bt_speedrunners();
     void handle_bt_apex();
     void handle_bt_cod_warzone();
     void handle_bt_civilization_vi();
-    void handle_bt_starcraft2();
 
     void update_settings();
 };

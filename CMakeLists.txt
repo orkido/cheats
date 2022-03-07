@@ -5,7 +5,7 @@ project(speedrunners LANGUAGES CXX C ASM_MASM)
 add_subdirectory(Blackbone/src)
 
 # Configure which functionality should be available in executable
-set(CoD_Overlay FALSE)
+set(Fortnite TRUE)
 set(Starcraft2 TRUE)
 set(Civilization TRUE)
 set(Apex TRUE)
@@ -52,39 +52,15 @@ set(
     "hack_speedrunners.cpp"
 )
 
-if(CoD_Overlay)
+if(Fortnite)
     set(
         "speedrunners_src"
         "${speedrunners_src}"
-
-        "hack_cod_warzone.cpp"
-
-        "CoD_Warzone/Entity.cpp"
-        "CoD_Warzone/GameContext.cpp"
-        "CoD_Warzone/Process.cpp"
-        "CoD_Warzone/CoD_Warzone.cpp"
 	)
-    add_compile_definitions(CoD_WARZONE_ENABLED=1)
+    add_compile_definitions(Fortnite_ENABLED=1)
     set(QT_Overlay TRUE)
 else()
-    add_compile_definitions(CoD_WARZONE_ENABLED=0)
-endif()
-
-if(Starcraft2)
-    set(
-        "speedrunners_src"
-        "${speedrunners_src}"
-
-        "hack_starcraft2.cpp"
-
-        "Starcraft2/Process.cpp"
-        "Starcraft2/Starcraft2.cpp"
-        "Starcraft2/Overlay.cpp"
-	)
-    add_compile_definitions(STARCRAFT2_ENABLED=1)
-    set(QT_Overlay TRUE)
-else()
-    add_compile_definitions(STARCRAFT2_ENABLED=0)
+    add_compile_definitions(Fortnite_ENABLED=0)
 endif()
 
 if(Civilization)

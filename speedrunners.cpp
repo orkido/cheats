@@ -89,26 +89,6 @@ void SpeedRunners::handle_bt_civilization_vi() {
 }
 #endif
 
-#if STARCRAFT2_ENABLED
-#include "hack_starcraft2.hpp"
-
-void SpeedRunners::handle_bt_starcraft2() {
-    update_settings();
-    overlay_starcraft2_one.reset();
-    overlay_starcraft2_two.reset();
-    if (hack_starcraft2(&overlay_starcraft2_one, &overlay_starcraft2_two)) {
-        if (config_display_overlay) {
-            overlay_starcraft2_one.reset(new QtOverlay::Overlay());
-            overlay_starcraft2_two.reset(new QtOverlay::Overlay());
-        }
-    }
-}
-#else
-void SpeedRunners::handle_bt_starcraft2() {
-    showMessageBox("Error", "Not Available!");
-}
-#endif
-
 void SpeedRunners::update_settings() {
     // Configure apexbot
 #if APEX_ENABLED
@@ -150,10 +130,6 @@ void SpeedRunners::update_settings() {
     }
 #endif
 
-#if STARCRAFT2_ENABLED
-    Starcraft2::starcraft2_config_refresh_rate = ui->spinBox_refresh_rate->value();
-#endif
-
     // Configure overlay
 #if QT_OVERLAY_ENABLED
     QtOverlay::overlay_config.overlay_config_fov = ui->spinBox_FOV->value();
@@ -161,7 +137,7 @@ void SpeedRunners::update_settings() {
     QtOverlay::overlay_config.overlay_config_overlay_propsurvival_radius = ui->doubleSpinBox_overlay_propsurvival_radius->value();
     QtOverlay::overlay_config.overlay_config_refresh_rate = ui->spinBox_refresh_rate->value();
 
-    QtOverlay::overlay_config.radar_unit_radius = ui->doubleSpinBox_overlay_starcraft2_radar_radius->value();
+    QtOverlay::overlay_config.radar_unit_radius = ui->doubleSpinBox_overlay_radar_radius->value();
 #endif
 }
 
