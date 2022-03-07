@@ -33,7 +33,7 @@ hook_GetSystemTimePreciseAsFileTime(
 
 __declspec(dllexport) DWORD WINAPI worker(LPVOID lpThreadParameter);
 
-HRESULT hook_EndScene(void* pDevice);
+__declspec(dllexport) HRESULT hook_EndScene(void* pDevice);
 
 __declspec(dllexport) t_NtQueryInformationThread winapi_NtQueryInformationThread = NULL;
 
@@ -133,7 +133,7 @@ __declspec(dllexport) BOOL init_functions() {
 && fn_local_player_index && fn_player_get && fn_player_global_list \
 && fn_player_get_name && fn_player_get_clantag && fn_player_get_color \
 && fn_player_camera_pitch && fn_player_camera_yaw && fn_player_camera_location && fn_player_camera_get_distance && fn_player_get_camera_bounds && fn_player_get_resources \
-&& fn_player_supply_cap_decrypt \
+&& fn_player_supply_cap_decrypt && fn_player_racestruct_get_race \
 && fn_map_x_y_min_max \
 && fn_unit_get \
 && fn_is_owner_ally_neutral_enemy && fn_read_health_shield_energy && fn_access_location_by_unit
@@ -173,23 +173,35 @@ debug_print(LEVEL_DEBUG, #x " = 0x%p\n", x)
     STATIC_OFFSET_SC2BASE(fn_player_get_camera_bounds);
     STATIC_OFFSET_SC2BASE(fn_player_get_resources);
     STATIC_OFFSET_SC2BASE(fn_player_supply_cap_decrypt);
+    STATIC_OFFSET_SC2BASE(fn_player_racestruct_get_race);
     STATIC_OFFSET_SC2BASE(fn_map_x_y_min_max);
     STATIC_OFFSET_SC2BASE(fn_unit_get);
     STATIC_OFFSET_SC2BASE(fn_is_owner_ally_neutral_enemy);
     STATIC_OFFSET_SC2BASE(fn_read_health_shield_energy);
     STATIC_OFFSET_SC2BASE(fn_access_location_by_unit);
 
+    char* d3d9_base_address = NULL;
+    char* d3d9_base_size = NULL;
+
+    BOOL success = GLOBAL_ADDRESSES;
+
+    if (HOOK_EndScene_ENABLED || EXTERNAL_HOOK_EndScene_ENABLED) {
+        d3d9_base_address = GetModuleInfo(GetCurrentProcessId(), "d3d9.dll", MODINFO_BASE);
+        d3d9_base_size = GetModuleInfo(GetCurrentProcessId(), "d3d9.dll", MODINFO_SIZE);
+        fn_EndScene = FindPattern(d3d9_base_address, d3d9_base_size, fn_EndScene_pattern_win10_20h2, fn_EndScene_mask_win10_20h2);
+        if (!fn_EndScene)
+            fn_EndScene = FindPattern(d3d9_base_address, d3d9_base_size, fn_EndScene_pattern_win10_19h1, fn_EndScene_mask_win10_19h1);
+
+        success = success && fn_EndScene;
+        if (!fn_EndScene)
+            debug_print(LEVEL_ERROR, "Failed to find EndScene by pattern matching. Your system version might not be supported\n");
+    }
+
     uintptr_t vtable_EndScene = NULL;
-    if (HOOK_EndScene) {
-        char* d3d9_base_address = GetModuleInfo(GetCurrentProcessId(), "d3d9.dll", MODINFO_BASE);
-        char* d3d9_base_size = GetModuleInfo(GetCurrentProcessId(), "d3d9.dll", MODINFO_SIZE);
+    if (HOOK_EndScene_ENABLED) {
         debug_print(LEVEL_DEBUG, "d3d9.dll base 0x%p, base size 0x%p\n", d3d9_base_address, (void*)d3d9_base_size);
         if (d3d9_base_address && d3d9_base_size) {
             debug_print(LEVEL_TRACE, "Accessing pointer chain to find EndScene\n");
-            // Alternative is to store pointer by using the vtable entry
-            fn_EndScene = FindPattern(d3d9_base_address, d3d9_base_size, fn_EndScene_pattern_win10_20h2, fn_EndScene_mask_win10_20h2);
-            if (!fn_EndScene)
-                fn_EndScene = FindPattern(d3d9_base_address, d3d9_base_size, fn_EndScene_pattern_win10_19h1, fn_EndScene_mask_win10_19h1);
             vtable_EndScene = *(uintptr_t*)(sc2_base_address + EndScene_level0);
             vtable_EndScene = *(uintptr_t*)(vtable_EndScene + EndScene_level1);
             vtable_EndScene = *(uintptr_t*)(vtable_EndScene + EndScene_level2);
@@ -198,14 +210,10 @@ debug_print(LEVEL_DEBUG, #x " = 0x%p\n", x)
         } else {
             debug_print(LEVEL_ERROR, "Failed to get d3d9.dll base address or size\n");
         }
-    }
 
-    BOOL success = GLOBAL_ADDRESSES;
-    if (HOOK_EndScene) {
-        success = success && fn_EndScene && vtable_EndScene;
-        if (!fn_EndScene)
-            debug_print(LEVEL_ERROR, "Failed to find EndScene by pattern matching. Your system version might not be supported\n");
-        else if (!vtable_EndScene)
+        success = success && vtable_EndScene;
+
+        if (!vtable_EndScene)
             debug_print(LEVEL_ERROR, "Failed to find vtable entry, got NULL-poninter\n");
         else if (*(char**)vtable_EndScene != fn_EndScene) {
             // Sanity check EndScene function pointer failed
@@ -214,6 +222,7 @@ debug_print(LEVEL_DEBUG, #x " = 0x%p\n", x)
         }
         debug_print(LEVEL_DEBUG, "fn_EndScene: 0x%p, vtable_EndScene: 0x%p\n", fn_EndScene, vtable_EndScene);
     }
+
     if (!success)
         debug_print(LEVEL_ERROR, "init_functions(): Failed to collect offsets and data\n");
 
@@ -224,7 +233,7 @@ debug_print(LEVEL_DEBUG, #x " = 0x%p\n", x)
             debug_print(LEVEL_TRACE, "Installing GetSystemTimePreciseAsFileTime hook\n");
             *(char**)(sc2_base_address + glob_fn_GetSystemTimePreciseAsFileTime) = hook_GetSystemTimePreciseAsFileTime;
         }
-        if (HOOK_EndScene) {
+        if (HOOK_EndScene_ENABLED) {
             debug_print(LEVEL_TRACE, "Installing EndScene hook\n");
             *(char**)vtable_EndScene = hook_EndScene;
         }
@@ -292,9 +301,11 @@ __declspec(dllexport) void work() {
 
     debug_print(LEVEL_TRACE, "glob_ingame\n");
     g_sc2data.ingame = *(uint8_t*)(sc2_base_address + glob_ingame);
-    if (!g_sc2data.ingame) {
+    if (!g_sc2data.ingame || !g_sc2data.enabled) {
+        uint8_t ingame = g_sc2data.ingame;
         memset(&g_sc2data, 0, sizeof(g_sc2data));
         g_sc2data.startup_done = 1;
+        g_sc2data.ingame = ingame;
         g_sc2data.overwrite_local_player_index = 0xFF;
         return;
     }
@@ -309,6 +320,8 @@ __declspec(dllexport) void work() {
 
     debug_print(LEVEL_TRACE, "fn_player_global_list()\n");
     char* player_list = fn_player_global_list();
+
+    g_sc2data.players_length = 16; // TODO
 
     for (uint32_t i = 0; i < 16; ++i) {
         debug_print(LEVEL_TRACE, "fn_player_get()\n");
@@ -329,16 +342,19 @@ __declspec(dllexport) void work() {
             out_player->address = in_player;
             out_player->id = in_player->player_id;
 
+            debug_print(LEVEL_TRACE, "fn_player_get_resources()\n");
             out_player->minerals = fn_player_get_resources(in_player, 0);
             out_player->vespene = fn_player_get_resources(in_player, 1);
             out_player->resource1 = fn_player_get_resources(in_player, 2);
             out_player->resource2 = fn_player_get_resources(in_player, 3);
 
+            debug_print(LEVEL_TRACE, "fn_is_owner_ally_neutral_enemy()\n");
             enum Team team = fn_is_owner_ally_neutral_enemy(g_sc2data.local_player_index, i);
             out_player->team = team;
 
-
-            int race = in_player->race_struct ? in_player->race_struct->race_id : RaceUnknown;
+            debug_print(LEVEL_TRACE, "fn_player_racestruct_get_race()\n");
+            // TODO
+            int race = 0; // fn_player_racestruct_get_race(&in_player->race_struct);
             if (race < RaceUnknown || race > RaceZerg)
                 race = RaceUnknown;
             out_player->race = race;
@@ -449,7 +465,7 @@ hook_GetSystemTimePreciseAsFileTime(
     GetSystemTimePreciseAsFileTime(lpSystemTimeAsFileTime);
 }
 
-HRESULT hook_EndScene(void* pDevice) {
+__declspec(dllexport) HRESULT hook_EndScene(void* pDevice) {
     debug_print(LEVEL_TRACE, "hook_EndScene()\n");
     work();
     debug_print(LEVEL_TRACE, "fn_EndScene()\n");

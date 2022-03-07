@@ -203,6 +203,9 @@ FN_PLAYER_GET_CAMERA_BOUNDS fn_player_get_camera_bounds = NULL;
 typedef int32_t(__fastcall* FN_PLAYER_GET_RESOURCES) (struct DT_Player* player, uint64_t resource_selection);
 FN_PLAYER_GET_RESOURCES fn_player_get_resources = NULL;
 
+typedef int32_t(__fastcall* FN_PLAYER_RACESTRUCT_GET_RACE) (struct DT_Race** race);
+FN_PLAYER_RACESTRUCT_GET_RACE fn_player_racestruct_get_race = NULL;
+
 typedef uint32_t* (__fastcall* FN_PLAYER_SUPPLY_CAP_DECRYPT) (struct DT_Player* player, uint32_t* output);
 FN_PLAYER_SUPPLY_CAP_DECRYPT fn_player_supply_cap_decrypt = NULL;
 
@@ -370,16 +373,19 @@ const uint64_t glob_symbol_names_offset = 0x077ae220;
 const uint64_t glob_units_list_offset = 0x03b7de40;
 const uint64_t glob_units_list_len_offset = 0x03b7de44;
 
+#define THREAD_START_ADDRESS_ENABLED 0
+#define WORKER_THREAD_ENABLED 0
+#define HOOK_GetSystemTimePreciseAsFileTime_ENABLED 0
+#define HOOK_EndScene_ENABLED 0
+#define EXTERNAL_HOOK_EndScene_ENABLED 1
+
+// Only required if HOOK_EndScene_ENABLED is enabled
 // v5.0.8.86383
 const uint32_t EndScene_level0 = 0x043d7018;
 const uint32_t EndScene_level1 = 0x28;
 const uint32_t EndScene_level2 = 0x0;
 const uint32_t EndScene_level3 = 0x150; // 0x150 = 8 * 42 (42 is the vtable index of EndScene)
 
-#define THREAD_START_ADDRESS_ENABLED 0
-#define WORKER_THREAD_ENABLED 0
-#define HOOK_GetSystemTimePreciseAsFileTime_ENABLED 0
-#define HOOK_EndScene 1
 
 // Only required if THREAD_START_ADDRESS_ENABLED is enabled
 // v5.0.7.84643

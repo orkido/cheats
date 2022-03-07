@@ -76,6 +76,7 @@ struct Unit {
 struct SC2Data {
     uint8_t startup_done;
     uint8_t ingame;
+    uint8_t enabled;
     uint32_t total_mapsize_x;
     uint32_t total_mapsize_y;
     uint32_t playable_mapsize_x_min;
