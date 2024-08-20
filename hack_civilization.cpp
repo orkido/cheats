@@ -105,7 +105,7 @@ MemBlock HackState::getGoldSetter() {
         hook_ptr = getGoldSetter_address;
     } else {
         auto& modules = process->modules();
-        auto gamecore_module = modules.GetModule(L"GameCore_Base_FinalRelease.dll");
+        auto gamecore_module = modules.GetModule(L"gamecore_xp2_finalrelease.dll");
 
         if (static_offset) {
             hook_ptr = gamecore_module->baseAddress + static_offset;
